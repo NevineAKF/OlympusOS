@@ -1,0 +1,16 @@
+crewai
+google-generativeai
+openai
+speechmatics-python
+fastapi
+uvicorn[standard]
+redis
+psycopg2-binary
+python-dotenv
+pydantic
+websockets
+streamlit
+ultralytics
+opencv-python-headless
+traci
+sumolib

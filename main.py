@@ -7,16 +7,48 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="OlympusOS")
 
-_orchestrator_agent = None
-_orchestrator_thread: threading.Thread | None = None
+# Agent instance + thread pairs, keyed by agent name
+_agents: dict[str, object] = {}
+_threads: dict[str, threading.Thread] = {}
 
-_perception_agent = None
-_perception_thread: threading.Thread | None = None
 
+def _is_alive(name: str) -> bool:
+    t = _threads.get(name)
+    return t is not None and t.is_alive()
+
+
+def _start(name: str, factory) -> dict:
+    if _is_alive(name):
+        raise HTTPException(status_code=409, detail=f"{name} is already running")
+    agent = factory()
+    _agents[name] = agent
+    t = threading.Thread(target=agent.run, daemon=True, name=name)
+    _threads[name] = t
+    t.start()
+    logger.info("%s started via API", name)
+    return {"status": "started", "agent": name}
+
+
+def _stop(name: str) -> dict:
+    if not _is_alive(name):
+        raise HTTPException(status_code=409, detail=f"{name} is not running")
+    _agents[name].stop()
+    return {"status": "stopping", "agent": name}
+
+
+# ------------------------------------------------------------------
+# Health
+# ------------------------------------------------------------------
 
 @app.get("/")
 def root() -> dict:
     return {"status": "OlympusOS running"}
+
+
+@app.get("/agents/status")
+def agents_status() -> dict:
+    return {name: _is_alive(name) for name in
+            ["orchestrator", "perception", "forecast", "mobility", "transit", "safety", "communications"]}
 
 
 # ------------------------------------------------------------------
@@ -25,33 +57,13 @@ def root() -> dict:
 
 @app.post("/orchestrator/start")
 def start_orchestrator() -> dict:
-    global _orchestrator_agent, _orchestrator_thread
-
-    if _orchestrator_thread and _orchestrator_thread.is_alive():
-        raise HTTPException(status_code=409, detail="Orchestrator is already running")
-
     from agents.orchestrator import OrchestratorAgent
-
-    _orchestrator_agent = OrchestratorAgent()
-    _orchestrator_thread = threading.Thread(
-        target=_orchestrator_agent.run,
-        daemon=True,
-        name="orchestrator",
-    )
-    _orchestrator_thread.start()
-    logger.info("Orchestrator started via API")
-    return {"status": "started"}
+    return _start("orchestrator", OrchestratorAgent)
 
 
 @app.post("/orchestrator/stop")
 def stop_orchestrator() -> dict:
-    global _orchestrator_agent, _orchestrator_thread
-
-    if not _orchestrator_thread or not _orchestrator_thread.is_alive():
-        raise HTTPException(status_code=409, detail="Orchestrator is not running")
-
-    _orchestrator_agent.stop()
-    return {"status": "stopping"}
+    return _stop("orchestrator")
 
 
 # ------------------------------------------------------------------
@@ -60,30 +72,85 @@ def stop_orchestrator() -> dict:
 
 @app.post("/perception/start")
 def start_perception() -> dict:
-    global _perception_agent, _perception_thread
-
-    if _perception_thread and _perception_thread.is_alive():
-        raise HTTPException(status_code=409, detail="Perception agent is already running")
-
     from agents.perception import PerceptionAgent
-
-    _perception_agent = PerceptionAgent()
-    _perception_thread = threading.Thread(
-        target=_perception_agent.run,
-        daemon=True,
-        name="perception",
-    )
-    _perception_thread.start()
-    logger.info("Perception agent started via API")
-    return {"status": "started"}
+    return _start("perception", PerceptionAgent)
 
 
 @app.post("/perception/stop")
 def stop_perception() -> dict:
-    global _perception_agent, _perception_thread
+    return _stop("perception")
 
-    if not _perception_thread or not _perception_thread.is_alive():
-        raise HTTPException(status_code=409, detail="Perception agent is not running")
 
-    _perception_agent.stop()
-    return {"status": "stopping"}
+# ------------------------------------------------------------------
+# Forecast
+# ------------------------------------------------------------------
+
+@app.post("/forecast/start")
+def start_forecast() -> dict:
+    from agents.forecast import ForecastAgent
+    return _start("forecast", ForecastAgent)
+
+
+@app.post("/forecast/stop")
+def stop_forecast() -> dict:
+    return _stop("forecast")
+
+
+# ------------------------------------------------------------------
+# Mobility
+# ------------------------------------------------------------------
+
+@app.post("/mobility/start")
+def start_mobility() -> dict:
+    from agents.mobility import MobilityAgent
+    return _start("mobility", MobilityAgent)
+
+
+@app.post("/mobility/stop")
+def stop_mobility() -> dict:
+    return _stop("mobility")
+
+
+# ------------------------------------------------------------------
+# Transit
+# ------------------------------------------------------------------
+
+@app.post("/transit/start")
+def start_transit() -> dict:
+    from agents.transit import TransitAgent
+    return _start("transit", TransitAgent)
+
+
+@app.post("/transit/stop")
+def stop_transit() -> dict:
+    return _stop("transit")
+
+
+# ------------------------------------------------------------------
+# Safety
+# ------------------------------------------------------------------
+
+@app.post("/safety/start")
+def start_safety() -> dict:
+    from agents.safety import SafetyAgent
+    return _start("safety", SafetyAgent)
+
+
+@app.post("/safety/stop")
+def stop_safety() -> dict:
+    return _stop("safety")
+
+
+# ------------------------------------------------------------------
+# Communications
+# ------------------------------------------------------------------
+
+@app.post("/communications/start")
+def start_communications() -> dict:
+    from agents.communications import CommunicationsAgent
+    return _start("communications", CommunicationsAgent)
+
+
+@app.post("/communications/stop")
+def stop_communications() -> dict:
+    return _stop("communications")

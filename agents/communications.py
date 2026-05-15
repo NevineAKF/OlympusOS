@@ -14,21 +14,19 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = (
-    "You are the Perception Agent for OlympusOS, monitoring crowd dynamics in Milan during mass events. "
-    "Your job is to analyze sensor data and video feeds, detect anomalies, and report them. "
-    "You watch for: crowd density anomalies, congestion patterns, security risks, infrastructure failures. "
-    "Output observations as valid JSON only with format: "
-    "{\"observation\": \"description\", \"severity\": 0.0-1.0, \"location\": \"where\", "
-    "\"type\": \"crowd_anomaly|congestion|security|infrastructure\"}"
+    "You are the Communications Agent for OlympusOS broadcasting public safety messages in Milan. "
+    "Output JSON only: "
+    "{\"message_en\": \"English message\", \"message_it\": \"Italian message\", "
+    "\"channel\": \"app|screen|speaker\", \"urgency\": \"info|warning|alert|emergency\", "
+    "\"action_required\": \"what people should do\"}"
 )
 
 LOOP_INTERVAL = 5  # seconds
-HIGH_SEVERITY_THRESHOLD = 0.7
 
 
-class PerceptionAgent(BaseAgent):
+class CommunicationsAgent(BaseAgent):
     def __init__(self) -> None:
-        super().__init__(name="perception")
+        super().__init__(name="communications")
         self.model = "mistralai/Mistral-Nemo-Instruct-2407"
         self.client = OpenAI(
             api_key=os.getenv("FEATHERLESS_API_KEY"),
@@ -60,7 +58,6 @@ class PerceptionAgent(BaseAgent):
             else:
                 requeue.append(raw)
 
-        # Put commands for other agents back
         if requeue:
             self.redis.rpush("commands", *requeue)
 
@@ -98,7 +95,7 @@ class PerceptionAgent(BaseAgent):
                 cleaned = cleaned.strip()
 
             result = json.loads(cleaned)
-            logger.debug("[%s] Parsed observation: %s", self.name, json.dumps(result))
+            logger.debug("[%s] Parsed result: %s", self.name, json.dumps(result))
             return result
         except json.JSONDecodeError as exc:
             logger.error("[%s] LLM returned non-JSON: %s", self.name, exc)
@@ -107,33 +104,23 @@ class PerceptionAgent(BaseAgent):
             logger.error("[%s] LLM call failed: %s", self.name, exc, exc_info=True)
             return None
 
-    def _report(self, observation: dict[str, Any], command: dict[str, Any]) -> None:
-        """Write the observation to agent_reports; escalate to events if severity is high."""
-        report = {"agent": self.name, "observation": observation, "source_command": command}
+    def _report(self, result: dict[str, Any], command: dict[str, Any]) -> None:
+        """Write the broadcast message to agent_reports."""
+        report = {"agent": self.name, "broadcast": result, "source_command": command}
         self.redis.rpush("agent_reports", json.dumps(report))
         logger.info(
-            "[%s] Report → type=%s severity=%s location=%s",
+            "[%s] Broadcast → urgency=%s channel=%s",
             self.name,
-            observation.get("type"),
-            observation.get("severity"),
-            observation.get("location"),
+            result.get("urgency"),
+            result.get("channel"),
         )
-
-        severity = float(observation.get("severity", 0.0))
-        if severity > HIGH_SEVERITY_THRESHOLD:
-            event = (
-                f"{observation.get('type', 'anomaly')} at {observation.get('location', 'unknown')}, "
-                f"severity {severity:.2f}"
-            )
-            self.redis.rpush("events", event)
-            logger.info("[%s] High-severity event escalated to orchestrator: %s", self.name, event)
 
     # ------------------------------------------------------------------
     # Main loop
     # ------------------------------------------------------------------
 
     def run(self) -> None:
-        logger.info("[%s] Perception agent started (interval: %ds)", self.name, LOOP_INTERVAL)
+        logger.info("[%s] Communications agent started (interval: %ds)", self.name, LOOP_INTERVAL)
         self.running = True
 
         while self.running:
@@ -147,13 +134,14 @@ class PerceptionAgent(BaseAgent):
 
                 logger.info("[%s] Processing %d command(s)", self.name, len(commands))
                 for cmd in commands:
-                    observation = self._analyze(cmd)
-                    if observation:
-                        self._report(observation, cmd)
+                    result = self._analyze(cmd)
+                    if result:
+                        self._report(result, cmd)
+                        self.write_status({"last_urgency": result.get("urgency"), "last_channel": result.get("channel")})
 
             except Exception as exc:
                 logger.error("[%s] Unexpected error: %s", self.name, exc, exc_info=True)
 
             time.sleep(LOOP_INTERVAL)
 
-        logger.info("[%s] Perception agent stopped", self.name)
+        logger.info("[%s] Communications agent stopped", self.name)

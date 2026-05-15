@@ -48,15 +48,16 @@ class OrchestratorAgent(BaseAgent):
         return json.dumps({"events": events, "agent_reports": reports})
 
     def _call_llm(self, context: str) -> dict[str, Any]:
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"Current state:\n{context}\n\n{_RESPONSE_FORMAT_HINT}"},
-            ],
-            temperature=0.2,
-            max_tokens=500,
-        )
+        with BaseAgent._API_LOCK:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": f"Current state:\n{context}\n\n{_RESPONSE_FORMAT_HINT}"},
+                ],
+                temperature=0.2,
+                max_tokens=500,
+            )
 
         content = response.choices[0].message.content
         logger.debug("[%s] RAW LLM response:\n%s", self.name, content)

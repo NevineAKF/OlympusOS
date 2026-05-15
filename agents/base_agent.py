@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import threading
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseAgent(ABC):
+    _API_LOCK = threading.Semaphore(3)
     def __init__(self, name: str) -> None:
         self.name = name
         self.running = False

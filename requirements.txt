@@ -1,4 +1,6 @@
 crewai
+langchain-openai
+litellm
 google-generativeai
 openai
 speechmatics-python

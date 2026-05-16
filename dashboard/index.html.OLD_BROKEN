@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OlympusOS — Urban Operations Center</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css">
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #050a14;
+  --cyan:    #00d4ff;
+  --orange:  #ff6b35;
+  --green:   #39ff14;
+  --red:     #ff2244;
+  --dim:     rgba(5,10,20,0.82);
+  --border:  rgba(0,212,255,0.35);
+}
+
+html, body {
+  width: 100vw; height: 100vh;
+  margin: 0; padding: 0;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: 'Space Grotesk', sans-serif;
+  color: #fff;
+  user-select: none;
+}
+
+#cesiumContainer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Hide Cesium chrome */
+.cesium-viewer-bottom,
+.cesium-viewer-animationContainer,
+.cesium-viewer-timelineContainer,
+.cesium-viewer-fullscreenContainer { display: none !important; }
+.cesium-viewer-toolbar { top: 70px !important; right: 8px !important; }
+.cesium-button {
+  background: rgba(5,10,20,0.85) !important;
+  color: var(--cyan) !important;
+  border: 1px solid rgba(0,212,255,0.3) !important;
+}
+
+/* ── TOP BAR ── */
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px;
+  background: var(--dim);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  z-index: 500;
+}
+
+#logo {
+  font-size: 1.45rem; font-weight: 700;
+  letter-spacing: 0.06em; color: var(--cyan);
+}
+#logo span { color: #fff; }
+
+#alert-banner {
+  display: none;
+  align-items: center; gap: 8px;
+  background: rgba(255,34,68,0.15);
+  border: 1px solid var(--red);
+  border-radius: 4px; padding: 5px 14px;
+  font-size: 0.75rem; font-weight: 700;
+  color: var(--red); letter-spacing: 0.06em;
+  animation: alertPulse 1.2s ease-in-out infinite;
+}
+@keyframes alertPulse { 0%,100%{box-shadow:0 0 6px rgba(255,34,68,.4)} 50%{box-shadow:0 0 20px rgba(255,34,68,.8)} }
+
+#topbar-right { display: flex; align-items: center; gap: 14px; }
+
+.status-pill {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em;
+}
+.dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--green); box-shadow: 0 0 8px var(--green);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+.dot.active  { background: var(--orange); box-shadow: 0 0 10px var(--orange); animation-duration: 0.6s; }
+.dot.resolved{ background: var(--cyan);   box-shadow: 0 0 12px var(--cyan); }
+@keyframes dotPulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+
+#run-btn {
+  background: var(--cyan); color: var(--bg);
+  border: none; border-radius: 5px;
+  padding: 9px 24px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.9rem; font-weight: 700;
+  letter-spacing: 0.05em; cursor: pointer;
+  transition: background .2s, box-shadow .2s, transform .1s;
+}
+#run-btn:hover:not(:disabled) {
+  background: #33ddff;
+  box-shadow: 0 0 22px rgba(0,212,255,.7);
+  transform: translateY(-1px);
+}
+#run-btn:disabled { opacity: .4; cursor: not-allowed; }
+#run-btn.running  { background: var(--orange); color: #fff; }
+#run-btn.resolved { background: var(--green);  color: var(--bg); }
+
+/* ── METRICS HUD (top-right) ── */
+#metrics-hud {
+  position: fixed; top: 66px; right: 10px;
+  width: 176px;
+  background: var(--dim);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px;
+  backdrop-filter: blur(8px);
+  z-index: 400;
+}
+.hud-title {
+  font-size: 0.6rem; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--cyan); margin-bottom: 8px;
+  border-bottom: 1px solid rgba(0,212,255,.2); padding-bottom: 5px;
+}
+.metric {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 7px;
+}
+.metric-lbl { font-size: 0.62rem; color: #7a8fa6; letter-spacing: .06em; text-transform: uppercase; }
+.metric-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.3rem; font-weight: 600; color: var(--cyan);
+  transition: color .6s;
+}
+.metric-val.danger  { color: var(--orange); }
+.metric-val.alert   { color: var(--red); }
+.metric-val.safe    { color: var(--green); }
+
+/* ── SYSTEM LOG (bottom-left) ── */
+#log-panel {
+  position: fixed; bottom: 10px; left: 10px;
+  width: 340px; max-height: 160px;
+  background: var(--dim);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px;
+  backdrop-filter: blur(8px);
+  z-index: 400; overflow: hidden;
+}
+.panel-hdr {
+  font-size: 0.58rem; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--cyan); margin-bottom: 6px;
+}
+#log-entries {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem; line-height: 1.65;
+  max-height: 120px; overflow-y: auto;
+}
+#log-entries::-webkit-scrollbar { width: 3px; }
+#log-entries::-webkit-scrollbar-thumb { background: #1e3050; }
+.le       { color: #2a5060; }
+.le.info  { color: var(--cyan); }
+.le.warn  { color: var(--orange); }
+.le.alert { color: var(--red); }
+.le.success{ color: var(--green); text-shadow: 0 0 6px rgba(57,255,20,.5); }
+.le.active { color: #7dd8f0; }
+
+/* ── TRANSCRIPT PANEL (bottom-right) ── */
+#transcript-panel {
+  display: none;
+  position: fixed; bottom: 10px; right: 10px;
+  width: 320px;
+  background: var(--dim);
+  border: 1px solid var(--cyan);
+  box-shadow: 0 0 20px rgba(0,212,255,.3);
+  border-radius: 8px; padding: 10px 12px;
+  backdrop-filter: blur(8px);
+  z-index: 400;
+  animation: transcriptAppear .4s ease;
+}
+@keyframes transcriptAppear { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+#transcript-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem; line-height: 1.7;
+  color: #c0e8f8; min-height: 40px;
+  max-height: 80px; overflow-y: auto;
+}
+
+/* ── AGENT SPEECH BUBBLES ── */
+.agent-bubble {
+  position: fixed;
+  display: none;
+  z-index: 600;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+}
+.bubble-inner {
+  background: rgba(5,10,30,0.92);
+  border: 1px solid var(--cyan);
+  border-radius: 8px;
+  padding: 8px 11px;
+  min-width: 180px; max-width: 240px;
+  box-shadow: 0 0 18px rgba(0,212,255,.35);
+  animation: bubbleIn .35s cubic-bezier(.175,.885,.32,1.275);
+}
+@keyframes bubbleIn { from{opacity:0;transform:scale(.7)} to{opacity:1;transform:scale(1)} }
+.bubble-agent  { font-size: 0.62rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--cyan); margin-bottom: 3px; }
+.bubble-model  { font-size: 0.55rem; color: #334455; margin-bottom: 5px; font-family: 'JetBrains Mono', monospace; }
+.bubble-text   { font-size: 0.65rem; color: #d0e8f8; line-height: 1.5; font-family: 'JetBrains Mono', monospace; }
+.bubble-tail {
+  width: 0; height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 8px solid var(--cyan);
+  margin: 0 auto;
+}
+
+/* ── SCAN LINES (cosmetic) ── */
+#scanlines {
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(to bottom,transparent 0,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);
+  pointer-events: none; z-index: 9999;
+}
+</style>
+</head>
+
+<body>
+<div id="scanlines"></div>
+<div id="cesiumContainer"></div>
+
+<!-- TOP BAR -->
+<header id="topbar">
+  <div id="logo">Olympus<span>OS</span></div>
+
+  <div id="alert-banner">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    METRO M5 FAILURE — GATE 4 ANOMALY
+  </div>
+
+  <div id="topbar-right">
+    <div class="status-pill">
+      <div class="dot" id="status-dot"></div>
+      <span id="status-text">STANDBY</span>
+    </div>
+    <button id="run-btn" onclick="startDemo()">▶ RUN DEMO</button>
+  </div>
+</header>
+
+<!-- METRICS HUD -->
+<div id="metrics-hud">
+  <div class="hud-title"><i class="fa fa-chart-line"></i> Live Metrics</div>
+  <div class="metric">
+    <span class="metric-lbl">Crowd Risk</span>
+    <span class="metric-val danger" id="m-risk">0.83</span>
+  </div>
+  <div class="metric">
+    <span class="metric-lbl">Evacuation</span>
+    <span class="metric-val danger" id="m-evac">28 min</span>
+  </div>
+  <div class="metric">
+    <span class="metric-lbl">Response</span>
+    <span class="metric-val danger" id="m-resp">3:12</span>
+  </div>
+  <div class="metric">
+    <span class="metric-lbl">Buses</span>
+    <span class="metric-val" id="m-buses">0</span>
+  </div>
+</div>
+
+<!-- SYSTEM LOG -->
+<div id="log-panel">
+  <div class="panel-hdr"><i class="fa fa-terminal"></i> System Log</div>
+  <div id="log-entries">
+    <div class="le info">[SYS] OlympusOS v2.0 initialised</div>
+    <div class="le info">[SYS] 7 agents registered</div>
+    <div class="le">[SYS] Awaiting scenario trigger…</div>
+  </div>
+</div>
+
+<!-- SPEECHMATICS TRANSCRIPT -->
+<div id="transcript-panel">
+  <div class="panel-hdr" style="color:var(--cyan)"><i class="fa fa-microphone"></i> Speechmatics Live Transcript</div>
+  <div id="transcript-text"></div>
+</div>
+
+<!-- AGENT SPEECH BUBBLES (one per agent) -->
+<div id="bubble-perception"     class="agent-bubble"><div class="bubble-inner"><div class="bubble-agent">👁 Perception</div><div class="bubble-model"></div><div class="bubble-text"></div></div><div class="bubble-tail"></div></div>
+<div id="bubble-forecast"       class="agent-bubble"><div class="bubble-inner"><div class="bubble-agent">🔮 Forecast</div><div class="bubble-model"></div><div class="bubble-text"></div></div><div class="bubble-tail"></div></div>
+<div id="bubble-mobility"       class="agent-bubble"><div class="bubble-inner"><div class="bubble-agent">🚦 Mobility</div><div class="bubble-model"></div><div class="bubble-text"></div></div><div class="bubble-tail"></div></div>
+<div id="bubble-transit"        class="agent-bubble"><div class="bubble-inner"><div class="bubble-agent">🚌 Transit</div><div class="bubble-model"></div><div class="bubble-text"></div></div><div class="bubble-tail"></div></div>
+<div id="bubble-safety"         class="agent-bubble"><div class="bubble-inner"><div class="bubble-agent">🛡 Safety</div><div class="bubble-model"></div><div class="bubble-text"></div></div><div class="bubble-tail"></div></div>
+<div id="bubble-communications" class="agent-bubble"><div class="bubble-inner"><div class="bubble-agent">📢 Comms</div><div class="bubble-model"></div><div class="bubble-text"></div></div><div class="bubble-tail"></div></div>
+<div id="bubble-orchestrator"   class="agent-bubble"><div class="bubble-inner"><div class="bubble-agent">🧠 Orchestrator</div><div class="bubble-model"></div><div class="bubble-text"></div></div><div class="bubble-tail"></div></div>
+
+<script>
+'use strict';
+
+const GOOGLE_MAPS_API_KEY = '__GOOGLE_MAPS_API_KEY__';
+
+// ── Cesium init ──────────────────────────────────────────────────────────────
+Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjOWExMzVmOS02MDk4LTQ1MTUtOGYwOS0wYTZhOWI3MWViNDkiLCJpZCI6NDMxOTI2LCJzdWIiOiJOZXZpbmUgQUtGIiwiaXNzIjoiaHR0cHM6Ly9pb24uY2VzaXVtLmNvbSIsImF1ZCI6Ik9seW1wdXNPUyIsImlhdCI6MTc3ODg2ODkwM30.L5nBg0vpPW0FCm2nmkF_H17s5LwQGmcDyFtS8Bh0seg';
+
+let viewer, pedestrianPrims, busPrims, agentPrims;
+let metroEntity, corridorEntity;
+let ws, demoRunning = false;
+const overlayIds = [];
+
+// Agent home positions
+const AGENT_POS = {
+  perception:     { lat: 45.4783, lng: 9.1238, alt: 15 },
+  forecast:       { lat: 45.4856, lng: 9.1409, alt: 15 },
+  mobility:       { lat: 45.4790, lng: 9.1280, alt: 15 },
+  transit:        { lat: 45.4940, lng: 9.1330, alt: 15 },
+  safety:         { lat: 45.4810, lng: 9.1245, alt: 15 },
+  communications: { lat: 45.4781, lng: 9.1240, alt: 15 },
+  orchestrator:   { lat: 45.4781, lng: 9.1240, alt: 220 },
+};
+
+// Active bubble world positions (Cartesian3) for per-frame repositioning
+const bubblePositions = {};
+
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      baseLayerPicker:       false,
+      geocoder:              false,
+      homeButton:            false,
+      sceneModePicker:       false,
+      navigationHelpButton:  false,
+      animation:             false,
+      timeline:              false,
+      fullscreenButton:      false,
+      infoBox:               false,
+      selectionIndicator:    false,
+    });
+
+    // Google Photorealistic 3D Tiles carry their own imagery and terrain
+    viewer.imageryLayers.removeAll();
+    viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+    viewer.scene.globe.enableLighting = false;
+
+    try {
+      const tileset = await Cesium.Cesium3DTileset.fromUrl(
+        `https://tile.googleapis.com/v1/3dtiles/root.json?key=${GOOGLE_MAPS_API_KEY}`,
+        { showCreditsOnScreen: true }
+      );
+      viewer.scene.primitives.add(tileset);
+      console.log('Google Photorealistic 3D Tiles loaded');
+    } catch (e) {
+      console.error('Google 3D Tiles failed:', e);
+      const fallback = await Cesium.Cesium3DTileset.fromIonAssetId(96188);
+      viewer.scene.primitives.add(fallback);
+    }
+
+    // Prevent home button snapping to default world view
+    viewer.homeButton && (viewer.scene.screenSpaceCameraController.enableLook = true);
+
+    // Point primitive collections
+    pedestrianPrims = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
+    busPrims        = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
+    agentPrims      = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
+
+    // Place dim agent dots at home positions
+    for (const [name, pos] of Object.entries(AGENT_POS)) {
+      agentPrims.add({
+        id:       `agent_${name}`,
+        position: Cesium.Cartesian3.fromDegrees(pos.lng, pos.lat, pos.alt),
+        color:    Cesium.Color.fromCssColorString('#1a3050').withAlpha(0.8),
+        pixelSize: 10,
+        outlineColor: Cesium.Color.fromCssColorString('#00d4ff').withAlpha(0.3),
+        outlineWidth: 2,
+      });
+    }
+
+    // San Siro marker
+    viewer.entities.add({
+      id: 'sansiro',
+      position: Cesium.Cartesian3.fromDegrees(9.1240, 45.4781, 5),
+      point: {
+        pixelSize: 14,
+        color: Cesium.Color.fromCssColorString('#00d4ff'),
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 2,
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+      },
+      label: {
+        text: '🏟 San Siro — 80,000 fans',
+        font: '13px "JetBrains Mono", monospace',
+        fillColor: Cesium.Color.fromCssColorString('#00d4ff'),
+        outlineColor: Cesium.Color.fromCssColorString('#050a14'),
+        outlineWidth: 3,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        pixelOffset: new Cesium.Cartesian2(0, -22),
+        showBackground: true,
+        backgroundColor: Cesium.Color.fromCssColorString('#050a14dd'),
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+      },
+    });
+
+    // Metro M5 line: San Siro Stadio → Lotto → city centre (simplified)
+    metroEntity = viewer.entities.add({
+      id: 'metro_m5',
+      polyline: {
+        positions: Cesium.Cartesian3.fromDegreesArray([
+          9.1249, 45.4803,  // San Siro Stadio M5
+          9.1409, 45.4856,  // Lotto M5
+          9.1544, 45.4873,  // Bonola M5
+          9.1650, 45.4891,  // QT8 M5
+          9.1780, 45.4855,  // Tre Torri M5
+          9.1876, 45.4781,  // Portello M5
+        ]),
+        width: 4,
+        material: Cesium.Color.fromCssColorString('#39ff14').withAlpha(0.85),
+        clampToGround: true,
+      },
+    });
+
+    // Lock camera LOW and CLOSE to San Siro — street-level 3D view
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(9.1235, 45.4770, 450),
+      orientation: {
+        heading: Cesium.Math.toRadians(30),
+        pitch: Cesium.Math.toRadians(-25),
+        roll: 0,
+      },
+    });
+
+    // After tiles load, orbit to a reveal angle so the stadium reads clearly
+    setTimeout(() => {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4775, 500),
+        orientation: {
+          heading: Cesium.Math.toRadians(45),
+          pitch: Cesium.Math.toRadians(-30),
+          roll: 0,
+        },
+        duration: 3,
+      });
+    }, 3000);
+
+    // Per-frame: reposition speech bubbles
+    viewer.scene.postRender.addEventListener(repositionBubbles);
+
+    setTimeout(() => { viewer.resize(); }, 600);
+  } catch (e) {
+    console.error('Cesium init error:', e);
+  }
+
+  connectWS();
+});
+
+// ── WebSocket ────────────────────────────────────────────────────────────────
+const WS_URL = `ws://${location.hostname}:8000/ws`;
+
+function connectWS() {
+  ws = new WebSocket(WS_URL);
+  ws.onopen    = () => addLog('[SYS] WebSocket connected', 'info');
+  ws.onclose   = () => { addLog('[SYS] WebSocket closed — retrying…', 'warn'); setTimeout(connectWS, 3000); };
+  ws.onerror   = () => addLog('[SYS] WebSocket error', 'alert');
+  ws.onmessage = e  => handleMessage(JSON.parse(e.data));
+}
+
+function handleMessage(msg) {
+  switch (msg.type) {
+    case 'sim_state':        renderSimState(msg);    break;
+    case 'agent_thinking':   agentThinking(msg);     break;
+    case 'agent_event':      agentComplete(msg);     break;
+    case 'metro_event':      metroFailed();          break;
+    case 'intervention':     /* handled by sim_state corridor flag */ break;
+    case 'log':              addLog(msg.text, msg.cls || ''); break;
+    case 'status':           setStatus(msg.status);  break;
+    case 'transcript':       appendTranscript(msg.text); break;
+    case 'crisis_contained': onCrisisContained();    break;
+  }
+}
+
+// ── Simulation state renderer ────────────────────────────────────────────────
+let lastCorridorActive = false;
+
+function renderSimState(state) {
+  // Pedestrians
+  pedestrianPrims.removeAll();
+  const g4density = (state.gates && state.gates.gate4) || 0;
+  for (const p of (state.pedestrians || [])) {
+    const isGate4 = p.gate === 'gate4';
+    const color = isGate4 && g4density > 0.7
+      ? Cesium.Color.fromCssColorString('#ff2244').withAlpha(0.9)
+      : Cesium.Color.fromCssColorString('#ff6b35').withAlpha(0.8);
+    pedestrianPrims.add({
+      position: Cesium.Cartesian3.fromDegrees(p.lng, p.lat, 1),
+      color,
+      pixelSize: isGate4 && g4density > 0.7 ? 7 : 5,
+    });
+  }
+
+  // Buses
+  busPrims.removeAll();
+  for (const b of (state.buses || [])) {
+    busPrims.add({
+      position: Cesium.Cartesian3.fromDegrees(b.lng, b.lat, 2),
+      color: Cesium.Color.fromCssColorString('#00d4ff').withAlpha(0.95),
+      pixelSize: 9,
+      outlineColor: Cesium.Color.WHITE,
+      outlineWidth: 2,
+    });
+  }
+
+  // Evacuation corridor
+  if (state.corridor && !lastCorridorActive) {
+    lastCorridorActive = true;
+    addCorridor();
+  }
+
+  // Metro line colour
+  if (state.metro_m5 === 'failed' && metroEntity) {
+    metroEntity.polyline.material = Cesium.Color.fromCssColorString('#ff2244').withAlpha(0.9);
+    metroEntity.polyline.width    = 6;
+  }
+
+  // Update risk metric from gate density
+  updateMetric('risk', g4density.toFixed(2), g4density > 0.6 ? 'danger' : 'safe');
+}
+
+// ── Map overlays ─────────────────────────────────────────────────────────────
+let gate4PulseT = 0;
+
+function addGate4Circle() {
+  const pulseMat = new Cesium.ColorMaterialProperty(
+    new Cesium.CallbackProperty(() => {
+      gate4PulseT += 0.05;
+      return Cesium.Color.fromCssColorString('#ff2244')
+        .withAlpha(0.2 + 0.5 * Math.abs(Math.sin(gate4PulseT)));
+    }, false)
+  );
+  const id = 'gate4_zone';
+  overlayIds.push(id);
+  viewer.entities.add({
+    id,
+    position: Cesium.Cartesian3.fromDegrees(9.1238, 45.4783, 2),
+    ellipse: {
+      semiMajorAxis: 200,
+      semiMinorAxis: 200,
+      material: pulseMat,
+      outline: true,
+      outlineColor: Cesium.Color.fromCssColorString('#ff2244'),
+      outlineWidth: 2,
+      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+    },
+  });
+  const lid = 'gate4_label';
+  overlayIds.push(lid);
+  viewer.entities.add({
+    id: lid,
+    position: Cesium.Cartesian3.fromDegrees(9.1238, 45.4800, 30),
+    label: {
+      text: '⚠ HIGH DENSITY — GATE 4\nSeverity 0.83 | crowd_anomaly',
+      font: '12px "JetBrains Mono", monospace',
+      fillColor: Cesium.Color.fromCssColorString('#ff2244'),
+      outlineColor: Cesium.Color.fromCssColorString('#050a14'),
+      outlineWidth: 3,
+      style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+      showBackground: true,
+      backgroundColor: Cesium.Color.fromCssColorString('#050a14ee'),
+    },
+  });
+}
+
+function addCorridor() {
+  const id1 = 'corridor_line', id2 = 'corridor_glow', id3 = 'corr_label';
+  overlayIds.push(id1, id2, id3);
+  const pts = Cesium.Cartesian3.fromDegreesArray([9.1240, 45.4781, 9.1240, 45.4950]);
+  viewer.entities.add({ id: id1, polyline: { positions: pts, width: 8, material: Cesium.Color.fromCssColorString('#39ff14').withAlpha(0.9), clampToGround: true } });
+  viewer.entities.add({ id: id2, polyline: { positions: pts, width: 22, material: Cesium.Color.fromCssColorString('#39ff14').withAlpha(0.14), clampToGround: true } });
+  viewer.entities.add({
+    id: id3,
+    position: Cesium.Cartesian3.fromDegrees(9.1240, 45.4865, 40),
+    label: {
+      text: '✓ EVACUATION CORRIDOR\nVia Leonardo da Vinci',
+      font: '12px "JetBrains Mono", monospace',
+      fillColor: Cesium.Color.fromCssColorString('#39ff14'),
+      outlineColor: Cesium.Color.fromCssColorString('#050a14'),
+      outlineWidth: 3,
+      style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+      showBackground: true,
+      backgroundColor: Cesium.Color.fromCssColorString('#050a14ee'),
+    },
+  });
+}
+
+// ── Metro failure ────────────────────────────────────────────────────────────
+function metroFailed() {
+  if (!metroEntity) return;
+  metroEntity.polyline.material = Cesium.Color.fromCssColorString('#ff2244').withAlpha(0.9);
+  metroEntity.polyline.width    = 6;
+  document.getElementById('alert-banner').style.display = 'flex';
+  playBeep(220, 0.4, 'sawtooth');
+}
+
+// ── Agent visualization ──────────────────────────────────────────────────────
+function agentThinking(msg) {
+  // Pulse the agent dot bright cyan
+  _setAgentDotColor(msg.agent, '#00d4ff', 14, true);
+  playBeep(880, 0.12, 'sine');
+}
+
+function agentComplete(msg) {
+  const { agent, result, model } = msg;
+  const pos = AGENT_POS[agent];
+  if (!pos) return;
+
+  // Glow the dot green
+  _setAgentDotColor(agent, '#39ff14', 14, false);
+
+  // Build bubble text from result
+  let text = '';
+  if (result && !result.error) {
+    const first = Object.entries(result).slice(0, 3);
+    text = first.map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join('\n');
+  } else {
+    text = 'Analysis complete.';
+  }
+
+  // Show bubble
+  const el = document.getElementById(`bubble-${agent}`);
+  if (el) {
+    el.querySelector('.bubble-model').textContent = model || '';
+    el.querySelector('.bubble-text').textContent  = '';
+    el.style.display = 'block';
+    // Store world position for per-frame anchoring
+    bubblePositions[agent] = Cesium.Cartesian3.fromDegrees(pos.lng, pos.lat, pos.alt + 30);
+    typeWriter(el.querySelector('.bubble-text'), text);
+  }
+
+  // Trigger specific map overlays
+  if (agent === 'perception') addGate4Circle();
+
+  // Speak the first sentence via SpeechSynthesis
+  const summaryText = result?.observation || result?.prediction || result?.summary || result?.message_en || 'Analysis complete.';
+  speakText(summaryText.slice(0, 120));
+  playBeep(660, 0.15, 'sine');
+
+  // Update metrics
+  if (agent === 'transit')        { updateMetric('buses', '50', 'safe'); updateMetric('evac', '18 min', 'safe'); }
+  if (agent === 'safety')         { updateMetric('resp', '0:47', 'safe'); }
+  if (agent === 'orchestrator')   { updateMetric('risk', '0.34', 'safe'); }
+  if (agent === 'communications') {
+    document.getElementById('transcript-panel').style.display = 'block';
+    addLog('[COMMS] Speechmatics transcription started', 'info');
+  }
+}
+
+function _setAgentDotColor(name, hexColor, size, outline) {
+  for (let i = 0; i < agentPrims.length; i++) {
+    const p = agentPrims.get(i);
+    if (p.id === `agent_${name}`) {
+      p.color = Cesium.Color.fromCssColorString(hexColor);
+      p.pixelSize = size;
+      if (outline) {
+        p.outlineColor = Cesium.Color.WHITE;
+        p.outlineWidth = 2;
+      }
+      break;
+    }
+  }
+}
+
+// ── Bubble position update (called every render frame) ───────────────────────
+function repositionBubbles() {
+  if (!viewer) return;
+  for (const [name, worldPos] of Object.entries(bubblePositions)) {
+    const el = document.getElementById(`bubble-${name}`);
+    if (!el || el.style.display === 'none') continue;
+    try {
+      const screenPos = Cesium.SceneTransforms.worldToWindowCoordinates(viewer.scene, worldPos);
+      if (screenPos) {
+        el.style.left = `${screenPos.x}px`;
+        el.style.top  = `${screenPos.y}px`;
+      }
+    } catch (_) {}
+  }
+}
+
+// ── Status / log helpers ─────────────────────────────────────────────────────
+function setStatus(status) {
+  const dot  = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  dot.className  = 'dot ' + status.toLowerCase();
+  text.textContent = status;
+}
+
+function addLog(text, cls) {
+  const el = document.createElement('div');
+  el.className = `le ${cls || ''}`;
+  el.textContent = text;
+  const log = document.getElementById('log-entries');
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+
+function updateMetric(id, value, cls) {
+  const el = document.getElementById(`m-${id}`);
+  if (!el) return;
+  el.textContent = value;
+  el.className   = `metric-val ${cls || ''}`;
+}
+
+function appendTranscript(text) {
+  document.getElementById('transcript-text').textContent += text;
+}
+
+function onCrisisContained() {
+  document.getElementById('alert-banner').style.display = 'none';
+  document.getElementById('run-btn').disabled   = false;
+  document.getElementById('run-btn').textContent = '↺ RUN AGAIN';
+  document.getElementById('run-btn').className  = 'resolved';
+  demoRunning = false;
+  addLog('[SYS] ██ CRISIS CONTAINED ██', 'success');
+  playBeep(1046, 0.3, 'sine');
+  setTimeout(() => playBeep(1318, 0.3, 'sine'), 200);
+  setTimeout(() => playBeep(1568, 0.4, 'sine'), 400);
+}
+
+// ── Demo trigger ─────────────────────────────────────────────────────────────
+function startDemo() {
+  if (demoRunning) return;
+  demoRunning = true;
+
+  // Reset map overlays
+  overlayIds.forEach(id => viewer.entities.removeById(id));
+  overlayIds.length = 0;
+  lastCorridorActive = false;
+
+  // Reset bubbles
+  for (const name of Object.keys(AGENT_POS)) {
+    const el = document.getElementById(`bubble-${name}`);
+    if (el) el.style.display = 'none';
+    _setAgentDotColor(name, '#1a3050', 10, false);
+  }
+  Object.keys(bubblePositions).forEach(k => delete bubblePositions[k]);
+
+  // Reset metrics
+  updateMetric('risk',  '0.83', 'danger');
+  updateMetric('evac',  '28 min', 'danger');
+  updateMetric('resp',  '3:12', 'danger');
+  updateMetric('buses', '0', '');
+
+  // Reset metro
+  if (metroEntity) {
+    metroEntity.polyline.material = Cesium.Color.fromCssColorString('#39ff14').withAlpha(0.85);
+    metroEntity.polyline.width    = 4;
+  }
+
+  // Reset transcript
+  document.getElementById('transcript-text').textContent = '';
+  document.getElementById('transcript-panel').style.display = 'none';
+  document.getElementById('alert-banner').style.display = 'none';
+
+  // UI state
+  const btn = document.getElementById('run-btn');
+  btn.disabled   = true;
+  btn.className  = 'running';
+  btn.textContent = '⬤ RUNNING';
+  setStatus('ACTIVE');
+  document.getElementById('log-entries').innerHTML =
+    '<div class="le info">[SYS] Demo sequence started</div>';
+
+  // Reset camera to San Siro street-level view
+  viewer.camera.setView({
+    destination: Cesium.Cartesian3.fromDegrees(9.1235, 45.4770, 450),
+    orientation: { heading: Cesium.Math.toRadians(30), pitch: Cesium.Math.toRadians(-25), roll: 0 },
+  });
+
+  // Hit backend
+  fetch(`http://${location.hostname}:8000/run_demo`, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => addLog(`[SYS] Backend: ${d.status}`, 'info'))
+    .catch(e => addLog(`[SYS] Backend unreachable: ${e.message}`, 'alert'));
+}
+
+// ── Audio helpers ─────────────────────────────────────────────────────────────
+let audioCtx;
+function _audioContext() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playBeep(freq, duration, type) {
+  try {
+    const ctx = _audioContext();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  } catch (_) {}
+}
+
+function speakText(text) {
+  if (!window.speechSynthesis) return;
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang  = 'en-GB';
+  utt.rate  = 1.05;
+  utt.pitch = 1.0;
+  utt.volume = 0.85;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utt);
+}
+
+// ── Typewriter effect ────────────────────────────────────────────────────────
+function typeWriter(el, text) {
+  el.textContent = '';
+  let i = 0;
+  const speed = Math.max(15, Math.floor(2000 / text.length));
+  const iv = setInterval(() => {
+    el.textContent += text[i++];
+    if (i >= text.length) clearInterval(iv);
+  }, speed);
+}
+</script>
+</body>
+</html>

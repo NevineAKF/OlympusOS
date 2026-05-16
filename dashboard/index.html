@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OlympusOS — Urban Operations Center</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<!-- CesiumJS -->
+<link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css">
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+
+<!-- Anime.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+<style>
+/* ── Reset & Base ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #050a14;
+  --bg-card:   #0d1526;
+  --bg-deep:   #020508;
+  --cyan:      #00d4ff;
+  --orange:    #ff6b35;
+  --green:     #39ff14;
+  --text:      #ffffff;
+  --text-dim:  #7a8fa6;
+  --border:    #1a2d45;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Grotesk', sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: #1e3050; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+/* ── Layout shell ────────────────────────────────────────────────── */
+#shell {
+  display: grid;
+  grid-template-rows: 60px 1fr 80px;
+  height: 100vh;
+  gap: 0;
+}
+
+/* ── TOP BAR ─────────────────────────────────────────────────────── */
+#topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--cyan);
+  box-shadow: 0 1px 20px rgba(0,212,255,0.15);
+  z-index: 100;
+}
+
+#logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+#logo .os { color: var(--cyan); }
+
+#alert-badge {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,107,53,0.15);
+  border: 1px solid var(--orange);
+  border-radius: 4px;
+  padding: 5px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--orange);
+  letter-spacing: 0.06em;
+  animation: badgePulse 1.2s ease-in-out infinite;
+}
+@keyframes badgePulse { 0%,100%{box-shadow:0 0 6px rgba(255,107,53,0.4)} 50%{box-shadow:0 0 18px rgba(255,107,53,0.8)} }
+
+#topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.status-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 10px var(--green);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+.status-dot.active {
+  background: var(--orange);
+  box-shadow: 0 0 10px var(--orange);
+  animation: dotPulse 0.7s ease-in-out infinite;
+}
+.status-dot.resolved {
+  background: var(--green);
+  box-shadow: 0 0 14px var(--green);
+  animation: dotPulse 3s ease-in-out infinite;
+}
+@keyframes dotPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.85)} }
+
+#status-text { color: var(--text-dim); }
+
+#run-btn {
+  background: var(--cyan);
+  color: var(--bg);
+  border: none;
+  border-radius: 5px;
+  padding: 9px 22px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+#run-btn:hover:not(:disabled) {
+  background: #33ddff;
+  box-shadow: 0 0 22px rgba(0,212,255,0.7);
+  transform: translateY(-1px);
+}
+#run-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── MAIN AREA ───────────────────────────────────────────────────── */
+#main {
+  display: grid;
+  grid-template-columns: 45fr 30fr 25fr;
+  grid-template-rows: 1fr;
+  gap: 10px;
+  padding: 10px;
+  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ── Shared card ─────────────────────────────────────────────────── */
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--cyan);
+  box-shadow: 0 0 20px rgba(0,212,255,0.12);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  padding: 7px 12px 6px;
+  border-bottom: 1px solid rgba(0,212,255,0.2);
+  flex-shrink: 0;
+}
+
+/* ── LEFT: MAP ───────────────────────────────────────────────────── */
+#map-panel {
+  height: 100%;
+  min-height: 0;
+}
+
+#map {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+}
+
+/* CesiumJS widget overrides */
+.cesium-viewer,
+.cesium-viewer-cesiumWidgetContainer,
+.cesium-widget,
+.cesium-widget canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+.cesium-viewer-bottom,
+.cesium-viewer-animationContainer,
+.cesium-viewer-timelineContainer { display: none !important; }
+.cesium-viewer-toolbar { top: 6px !important; right: 6px !important; }
+.cesium-button {
+  background: rgba(13,21,38,0.85) !important;
+  color: var(--cyan) !important;
+  border: 1px solid var(--border) !important;
+}
+.cesium-button:hover { background: rgba(0,212,255,0.15) !important; }
+
+/* ── CENTER: AGENT FEED ──────────────────────────────────────────── */
+#feed-panel {
+  overflow: hidden;
+}
+
+#agents-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.agent-card {
+  background: #080f1e;
+  border-radius: 6px;
+  border-left: 3px solid var(--border);
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 10px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  cursor: default;
+}
+.agent-card:hover { filter: brightness(1.1); }
+
+.agent-card.thinking {
+  border-left-color: var(--orange);
+  border-top-color: rgba(255,107,53,0.4);
+  border-right-color: rgba(255,107,53,0.4);
+  border-bottom-color: rgba(255,107,53,0.4);
+  box-shadow: 0 0 12px rgba(255,107,53,0.25);
+  animation: cardThink 0.9s ease-in-out infinite;
+}
+@keyframes cardThink { 0%,100%{box-shadow:0 0 8px rgba(255,107,53,0.2)} 50%{box-shadow:0 0 20px rgba(255,107,53,0.5)} }
+
+.agent-card.complete {
+  border-left-color: var(--green);
+  border-top-color: rgba(57,255,20,0.3);
+  border-right-color: rgba(57,255,20,0.3);
+  border-bottom-color: rgba(57,255,20,0.3);
+  box-shadow: 0 0 10px rgba(57,255,20,0.15);
+}
+
+.agent-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.agent-icon { font-size: 1rem; }
+
+.agent-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--cyan);
+  flex: 1;
+}
+
+.agent-model {
+  font-size: 0.58rem;
+  color: #3a5060;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.agent-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+.badge-standby  { background: #111e30; color: #445566; border: 1px solid #1e2d40; }
+.badge-thinking { background: rgba(255,107,53,0.18); color: var(--orange); border: 1px solid var(--orange); animation: badgeBlink 0.8s infinite; }
+.badge-complete { background: rgba(57,255,20,0.14); color: var(--green);  border: 1px solid var(--green); }
+@keyframes badgeBlink { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+.agent-output {
+  display: none;
+  margin-top: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.63rem;
+  color: #7a9ab0;
+  line-height: 1.5;
+  word-break: break-all;
+  white-space: pre-wrap;
+  border-left: 2px solid rgba(57,255,20,0.3);
+  padding-left: 6px;
+}
+
+/* ── RIGHT: METRICS + LOG ────────────────────────────────────────── */
+#right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+#metrics-panel {
+  flex-shrink: 0;
+}
+
+#metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 8px;
+}
+
+.metric-card {
+  background: #080f1e;
+  border: 1px solid var(--cyan);
+  box-shadow: 0 0 10px rgba(0,212,255,0.15);
+  border-radius: 6px;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.metric-label {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+}
+
+.metric-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--cyan);
+  line-height: 1;
+  transition: color 0.5s;
+}
+.metric-value.danger { color: var(--orange); }
+.metric-value.safe   { color: var(--green); }
+
+.metric-delta {
+  font-size: 0.6rem;
+  margin-top: 4px;
+  color: var(--text-dim);
+  min-height: 14px;
+}
+.metric-delta.good { color: var(--green); }
+.metric-delta.bad  { color: var(--orange); }
+
+#log-panel { flex: 1; overflow: hidden; }
+
+#log-entries {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  background: var(--bg-deep);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  line-height: 1.7;
+  max-height: 150px;
+}
+
+.log-entry { color: #2a5a3a; }
+.log-entry.info    { color: #1a8090; }
+.log-entry.warn    { color: #a04010; }
+.log-entry.active  { color: var(--cyan); }
+.log-entry.success { color: var(--green); text-shadow: 0 0 8px rgba(57,255,20,0.5); }
+.log-entry.alert   { color: var(--orange); }
+
+/* ── BOTTOM BAR ──────────────────────────────────────────────────── */
+#bottombar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 8px 10px;
+  border-top: 1px solid rgba(0,212,255,0.2);
+  background: var(--bg);
+}
+
+.cam-box {
+  background: var(--bg-deep);
+  border: 1px solid var(--orange);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 16px;
+  box-shadow: 0 0 10px rgba(255,107,53,0.1);
+}
+
+.cam-icon-wrap {
+  font-size: 1.6rem;
+  color: #2a3a4a;
+}
+
+.cam-info { flex: 1; }
+.cam-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+}
+.cam-status {
+  font-size: 0.6rem;
+  color: var(--orange);
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 2px;
+}
+
+.cam-yolo {
+  font-size: 0.58rem;
+  color: #1a5030;
+  background: rgba(57,255,20,0.07);
+  border: 1px solid rgba(57,255,20,0.2);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Scan-line overlay (purely cosmetic) ─────────────────────────── */
+#scanlines {
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px, transparent 2px,
+    rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+</style>
+</head>
+
+<body>
+<div id="scanlines"></div>
+
+<div id="shell">
+
+  <!-- ── TOP BAR ──────────────────────────────────────────────── -->
+  <header id="topbar">
+    <div id="logo">Olympus<span class="os">OS</span></div>
+
+    <div id="alert-badge">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      METRO M5 FAILURE — GATE 4 ANOMALY DETECTED
+    </div>
+
+    <div id="topbar-right">
+      <div class="status-indicator">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">STANDBY</span>
+      </div>
+      <button id="run-btn" onclick="runDemo()">▶ RUN DEMO</button>
+    </div>
+  </header>
+
+  <!-- ── MAIN ─────────────────────────────────────────────────── -->
+  <div id="main">
+
+    <!-- LEFT: MAP -->
+    <div class="panel" id="map-panel">
+      <div class="panel-header"><i class="fa-solid fa-map-location-dot"></i> &nbsp;LIVE MAP — MILAN</div>
+      <div id="map"></div>
+    </div>
+
+    <!-- CENTER: AGENT FEED -->
+    <div class="panel" id="feed-panel">
+      <div class="panel-header"><i class="fa-solid fa-robot"></i> &nbsp;AGENT FEED</div>
+      <div id="agents-list">
+
+        <div class="agent-card" id="card-perception">
+          <div class="agent-header">
+            <span class="agent-icon">👁</span>
+            <span class="agent-name">Perception</span>
+            <span class="agent-model">Mistral-Nemo</span>
+            <span class="agent-badge badge-standby" id="badge-perception">STANDBY</span>
+          </div>
+          <div class="agent-output" id="out-perception"></div>
+        </div>
+
+        <div class="agent-card" id="card-forecast">
+          <div class="agent-header">
+            <span class="agent-icon">🔮</span>
+            <span class="agent-name">Forecast</span>
+            <span class="agent-model">DeepSeek V3.2</span>
+            <span class="agent-badge badge-standby" id="badge-forecast">STANDBY</span>
+          </div>
+          <div class="agent-output" id="out-forecast"></div>
+        </div>
+
+        <div class="agent-card" id="card-mobility">
+          <div class="agent-header">
+            <span class="agent-icon">🚦</span>
+            <span class="agent-name">Mobility</span>
+            <span class="agent-model">Qwen 2.5</span>
+            <span class="agent-badge badge-standby" id="badge-mobility">STANDBY</span>
+          </div>
+          <div class="agent-output" id="out-mobility"></div>
+        </div>
+
+        <div class="agent-card" id="card-transit">
+          <div class="agent-header">
+            <span class="agent-icon">🚌</span>
+            <span class="agent-name">Transit</span>
+            <span class="agent-model">Qwen 2.5</span>
+            <span class="agent-badge badge-standby" id="badge-transit">STANDBY</span>
+          </div>
+          <div class="agent-output" id="out-transit"></div>
+        </div>
+
+        <div class="agent-card" id="card-safety">
+          <div class="agent-header">
+            <span class="agent-icon">🛡</span>
+            <span class="agent-name">Safety</span>
+            <span class="agent-model">Mistral-Nemo</span>
+            <span class="agent-badge badge-standby" id="badge-safety">STANDBY</span>
+          </div>
+          <div class="agent-output" id="out-safety"></div>
+        </div>
+
+        <div class="agent-card" id="card-communications">
+          <div class="agent-header">
+            <span class="agent-icon">📢</span>
+            <span class="agent-name">Communications</span>
+            <span class="agent-model">Mistral-Nemo</span>
+            <span class="agent-badge badge-standby" id="badge-communications">STANDBY</span>
+          </div>
+          <div class="agent-output" id="out-communications"></div>
+        </div>
+
+        <div class="agent-card" id="card-orchestrator">
+          <div class="agent-header">
+            <span class="agent-icon">🧠</span>
+            <span class="agent-name">Orchestrator</span>
+            <span class="agent-model">DeepSeek V3.1</span>
+            <span class="agent-badge badge-standby" id="badge-orchestrator">STANDBY</span>
+          </div>
+          <div class="agent-output" id="out-orchestrator"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: METRICS + LOG -->
+    <div id="right-col">
+
+      <div class="panel" id="metrics-panel">
+        <div class="panel-header"><i class="fa-solid fa-chart-line"></i> &nbsp;METRICS</div>
+        <div id="metrics-grid">
+
+          <div class="metric-card">
+            <div class="metric-label">Crowd Risk</div>
+            <div class="metric-value danger" id="m-risk">0.83</div>
+            <div class="metric-delta bad" id="d-risk">↑ Critical</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">Evacuation</div>
+            <div class="metric-value danger" id="m-evac">28<span style="font-size:0.9rem"> min</span></div>
+            <div class="metric-delta" id="d-evac">—</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">Response</div>
+            <div class="metric-value danger" id="m-resp">3:12</div>
+            <div class="metric-delta" id="d-resp">—</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">Buses</div>
+            <div class="metric-value" id="m-buses">0</div>
+            <div class="metric-delta" id="d-buses">—</div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="panel" id="log-panel">
+        <div class="panel-header"><i class="fa-solid fa-terminal"></i> &nbsp;SYSTEM LOG</div>
+        <div id="log-entries">
+          <div class="log-entry info">[SYSTEM] OlympusOS v1.0 initialised</div>
+          <div class="log-entry info">[SYSTEM] Redis connected — OK</div>
+          <div class="log-entry info">[SYSTEM] 7 agents registered</div>
+          <div class="log-entry">[SYSTEM] Awaiting scenario trigger…</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- ── BOTTOM BAR ───────────────────────────────────────────── -->
+  <div id="bottombar">
+    <div class="cam-box">
+      <div class="cam-icon-wrap"><i class="fa-solid fa-video"></i></div>
+      <div class="cam-info">
+        <div class="cam-title">CAM 1 — Gate 4</div>
+        <div class="cam-status">● LIVE FEED</div>
+      </div>
+      <div class="cam-yolo">YOLO Active</div>
+    </div>
+    <div class="cam-box">
+      <div class="cam-icon-wrap"><i class="fa-solid fa-video"></i></div>
+      <div class="cam-info">
+        <div class="cam-title">CAM 2 — Metro Lotto</div>
+        <div class="cam-status">● LIVE FEED</div>
+      </div>
+      <div class="cam-yolo">YOLO Active</div>
+    </div>
+  </div>
+
+</div><!-- /shell -->
+
+<script>
+/* ── CesiumJS Map init ─────────────────────────────────────────────── */
+const CESIUM_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjOWExMzVmOS02MDk4LTQ1MTUtOGYwOS0wYTZhOWI3MWViNDkiLCJpZCI6NDMxOTI2LCJzdWIiOiJOZXZpbmUgQUtGIiwiaXNzIjoiaHR0cHM6Ly9pb24uY2VzaXVtLmNvbSIsImF1ZCI6Ik9seW1wdXNPUyIsImlhdCI6MTc3ODg2ODkwM30.L5nBg0vpPW0FCm2nmkF_H17s5LwQGmcDyFtS8Bh0seg';
+Cesium.Ion.defaultAccessToken = CESIUM_TOKEN;
+
+let viewer;
+let overlayIds = [];
+
+window.addEventListener('DOMContentLoaded', function() {
+  try {
+    viewer = new Cesium.Viewer('map', {
+      terrain:               Cesium.Terrain.fromWorldTerrain(),
+      baseLayerPicker:       false,
+      geocoder:              false,
+      homeButton:            false,
+      sceneModePicker:       false,
+      navigationHelpButton:  false,
+      animation:             false,
+      timeline:              false,
+      fullscreenButton:      false,
+      infoBox:               false,
+      selectionIndicator:    false,
+    });
+
+    // Diagnostic
+    console.log('Map div dimensions:', document.getElementById('map').offsetWidth, document.getElementById('map').offsetHeight);
+    console.log('Viewer created:', viewer);
+    console.log('Canvas:', viewer.canvas.width, viewer.canvas.height);
+
+    viewer.scene.globe.enableLighting = false;
+
+    // Esri World Imagery — free satellite base layer
+    viewer.imageryLayers.removeAll();
+    viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      maximumLevel: 19,
+    }));
+
+    Cesium.Cesium3DTileset.fromIonAssetId(96188).then(function(tileset) {
+      viewer.scene.primitives.add(tileset);
+    });
+
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4781, 800),
+      orientation: {
+        heading: Cesium.Math.toRadians(0),
+        pitch: Cesium.Math.toRadians(-45),
+        roll: 0.0
+      },
+      duration: 3
+    });
+
+    viewer.entities.add({
+      id: 'sansiro',
+      position: Cesium.Cartesian3.fromDegrees(9.1240, 45.4781, 5),
+      point: {
+        pixelSize:    14,
+        color:        Cesium.Color.fromCssColorString('#ff6b35'),
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 2,
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+      },
+      label: {
+        text:            '🏟 San Siro — 80,000 fans',
+        font:            '13px "JetBrains Mono", monospace',
+        fillColor:       Cesium.Color.fromCssColorString('#00d4ff'),
+        outlineColor:    Cesium.Color.fromCssColorString('#050a14'),
+        outlineWidth:    3,
+        style:           Cesium.LabelStyle.FILL_AND_OUTLINE,
+        pixelOffset:     new Cesium.Cartesian2(0, -24),
+        showBackground:  true,
+        backgroundColor: Cesium.Color.fromCssColorString('#050a14dd'),
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+      },
+    });
+
+    setTimeout(() => { viewer.resize(); }, 500);
+  } catch (e) {
+    console.log('Cesium init error:', e);
+  }
+});
+
+function addGate4Circle() {
+  // Pulsing ellipse using CallbackProperty on alpha
+  let t = 0;
+  const pulseMat = new Cesium.ColorMaterialProperty(
+    new Cesium.CallbackProperty(() => {
+      t += 0.04;
+      const alpha = 0.25 + 0.45 * Math.abs(Math.sin(t));
+      return Cesium.Color.fromCssColorString('#ff6b35').withAlpha(alpha);
+    }, false)
+  );
+
+  const id1 = 'gate4_ellipse';
+  const id2 = 'gate4_label';
+  overlayIds.push(id1, id2);
+
+  viewer.entities.add({
+    id: id1,
+    position: Cesium.Cartesian3.fromDegrees(9.1240, 45.4781, 2),
+    ellipse: {
+      semiMajorAxis:   200,
+      semiMinorAxis:   200,
+      material:        pulseMat,
+      outline:         true,
+      outlineColor:    Cesium.Color.fromCssColorString('#ff6b35'),
+      outlineWidth:    2,
+      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+    },
+  });
+
+  viewer.entities.add({
+    id: id2,
+    position: Cesium.Cartesian3.fromDegrees(9.1240, 45.4800, 30),
+    label: {
+      text:            '⚠ HIGH CROWD DENSITY — GATE 4\nSeverity: 0.83 | crowd_anomaly',
+      font:            '12px "JetBrains Mono", monospace',
+      fillColor:       Cesium.Color.fromCssColorString('#ff6b35'),
+      outlineColor:    Cesium.Color.fromCssColorString('#050a14'),
+      outlineWidth:    3,
+      style:           Cesium.LabelStyle.FILL_AND_OUTLINE,
+      showBackground:  true,
+      backgroundColor: Cesium.Color.fromCssColorString('#050a14ee'),
+    },
+  });
+}
+
+function addCorridor() {
+  const corridorCoords = Cesium.Cartesian3.fromDegreesArray([
+    9.1240, 45.4781,
+    9.1240, 45.4950,
+  ]);
+
+  const id1 = 'corridor_line';
+  const id2 = 'corridor_glow';
+  const id3 = 'corridor_label';
+  overlayIds.push(id1, id2, id3);
+
+  viewer.entities.add({
+    id: id1,
+    polyline: {
+      positions:         corridorCoords,
+      width:             8,
+      material:          Cesium.Color.fromCssColorString('#39ff14').withAlpha(0.9),
+      clampToGround:     true,
+    },
+  });
+
+  viewer.entities.add({
+    id: id2,
+    polyline: {
+      positions:         corridorCoords,
+      width:             22,
+      material:          Cesium.Color.fromCssColorString('#39ff14').withAlpha(0.15),
+      clampToGround:     true,
+    },
+  });
+
+  viewer.entities.add({
+    id: id3,
+    position: Cesium.Cartesian3.fromDegrees(9.1240, 45.4865, 40),
+    label: {
+      text:            '✓ EVACUATION CORRIDOR\nSan Siro → North',
+      font:            '12px "JetBrains Mono", monospace',
+      fillColor:       Cesium.Color.fromCssColorString('#39ff14'),
+      outlineColor:    Cesium.Color.fromCssColorString('#050a14'),
+      outlineWidth:    3,
+      style:           Cesium.LabelStyle.FILL_AND_OUTLINE,
+      showBackground:  true,
+      backgroundColor: Cesium.Color.fromCssColorString('#050a14ee'),
+    },
+  });
+}
+
+function addBuses() {
+  // 5 points interpolated from San Siro (9.1240, 45.4781) to Milan Central (9.2047, 45.4854)
+  const busPositions = [
+    [9.1240, 45.4781],
+    [9.1442, 45.4799],
+    [9.1644, 45.4818],
+    [9.1845, 45.4836],
+    [9.2047, 45.4854],
+  ];
+
+  const routeId = 'bus_route';
+  overlayIds.push(routeId);
+  viewer.entities.add({
+    id: routeId,
+    polyline: {
+      positions:     Cesium.Cartesian3.fromDegreesArray(busPositions.flat()),
+      width:         4,
+      material:      new Cesium.PolylineDashMaterialProperty({
+        color:       Cesium.Color.fromCssColorString('#00d4ff').withAlpha(0.75),
+        dashLength:  16,
+      }),
+      clampToGround: true,
+    },
+  });
+
+  busPositions.forEach(([lon, lat], i) => {
+    const busId = `bus_${i}`;
+    overlayIds.push(busId);
+    setTimeout(() => {
+      viewer.entities.add({
+        id: busId,
+        position: Cesium.Cartesian3.fromDegrees(lon, lat, 5),
+        point: {
+          pixelSize:       12,
+          color:           Cesium.Color.fromCssColorString('#00d4ff'),
+          outlineColor:    Cesium.Color.WHITE,
+          outlineWidth:    2,
+          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+        },
+        label: {
+          text:            '🚌',
+          font:            '16px sans-serif',
+          pixelOffset:     new Cesium.Cartesian2(0, -20),
+          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+        },
+      });
+    }, i * 300);
+  });
+}
+
+/* ── Agent helpers ─────────────────────────────────────────────────── */
+function setAgent(name, state, outputText = '') {
+  const card   = document.getElementById(`card-${name}`);
+  const badge  = document.getElementById(`badge-${name}`);
+  const output = document.getElementById(`out-${name}`);
+
+  card.classList.remove('thinking', 'complete');
+  badge.classList.remove('badge-standby', 'badge-thinking', 'badge-complete');
+
+  if (state === 'thinking') {
+    card.classList.add('thinking');
+    badge.classList.add('badge-thinking');
+    badge.textContent = 'THINKING…';
+    output.style.display = 'none';
+  } else if (state === 'complete') {
+    card.classList.add('complete');
+    badge.classList.add('badge-complete');
+    badge.textContent = 'COMPLETE';
+    output.textContent = outputText;
+    output.style.display = 'block';
+    // Typewriter
+    typeWriter(output, outputText);
+  } else {
+    badge.classList.add('badge-standby');
+    badge.textContent = 'STANDBY';
+  }
+}
+
+function typeWriter(el, text) {
+  el.textContent = '';
+  let i = 0;
+  const speed = Math.max(12, Math.floor(1800 / text.length));
+  const iv = setInterval(() => {
+    el.textContent += text[i++];
+    if (i >= text.length) clearInterval(iv);
+  }, speed);
+}
+
+/* ── Log helper ────────────────────────────────────────────────────── */
+function addLog(text, cls = '') {
+  const el = document.createElement('div');
+  el.className = `log-entry ${cls}`;
+  el.textContent = text;
+  const log = document.getElementById('log-entries');
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+
+/* ── Metric counter animation ──────────────────────────────────────── */
+function animateCount(elId, from, to, duration, decimals = 0, suffix = '') {
+  const el = document.getElementById(elId);
+  const start = performance.now();
+  function step(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    const val  = from + (to - from) * ease;
+    el.innerHTML = val.toFixed(decimals) + suffix;
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ── Demo sequence ─────────────────────────────────────────────────── */
+const OUTPUTS = {
+  perception:     '{"observation": "High density crowd at Gate 4, fans pushing to exit", "severity": 0.83, "type": "crowd_anomaly"}',
+  forecast:       '{"prediction": "Crowd crush risk within 10 min", "confidence": 0.87, "severity": 0.91}',
+  mobility:       '{"action": "signal_change", "target": "Via Giuseppe Verdi", "improvement": "30%"}',
+  transit:        '{"action": "deploy_buses", "vehicles": 50, "route": "San Siro → Central Station"}',
+  safety:         '{"risk_level": "critical", "action": "open_corridor", "route": "Via Leonardo da Vinci"}',
+  communications: '{"message_en": "Please use Gates 2, 6, 8. Buses available.", "urgency": "warning"}',
+  orchestrator:   '{"priority": "high", "summary": "Crisis contained. All agents coordinated. Evacuation in progress."}',
+};
+
+let demoRunning = false;
+
+function runDemo() {
+  if (demoRunning) return;
+  demoRunning = true;
+
+  document.getElementById('run-btn').disabled = true;
+
+  const schedule = [
+    // [delay_ms, fn]
+    [0, () => {
+      document.getElementById('status-dot').className = 'status-dot active';
+      document.getElementById('status-text').textContent = 'ACTIVE';
+      const badge = document.getElementById('alert-badge');
+      badge.style.display = 'flex';
+      addLog('[WARN]  Metro M5 failure detected', 'alert');
+      addLog('[WARN]  Crowd anomaly at Gate 4 — severity 0.83', 'alert');
+      addLog('[SYS]   Launching CrewAI scenario…', 'active');
+    }],
+    [1000, () => {
+      setAgent('perception', 'thinking');
+      addLog('[AGENT] Perception → THINKING', 'info');
+    }],
+    [3000, () => {
+      setAgent('perception', 'complete', OUTPUTS.perception);
+      addGate4Circle();
+      addLog('[AGENT] Perception → COMPLETE', 'success');
+    }],
+    [5000, () => {
+      setAgent('forecast', 'thinking');
+      addLog('[AGENT] Forecast → THINKING', 'info');
+    }],
+    [7000, () => {
+      setAgent('forecast', 'complete', OUTPUTS.forecast);
+      addLog('[AGENT] Forecast → COMPLETE (severity 0.91)', 'success');
+    }],
+    [9000, () => {
+      setAgent('mobility', 'thinking');
+      setAgent('transit',  'thinking');
+      addLog('[AGENT] Mobility + Transit → THINKING', 'info');
+    }],
+    [11000, () => {
+      setAgent('mobility', 'complete', OUTPUTS.mobility);
+      setAgent('transit',  'complete', OUTPUTS.transit);
+      addBuses();
+      const mBuses = document.getElementById('m-buses');
+      mBuses.classList.add('safe');
+      animateCount('m-buses', 0, 50, 1500, 0);
+      document.getElementById('d-buses').textContent = '↑ Fleet active';
+      document.getElementById('d-buses').className = 'metric-delta good';
+      addLog('[AGENT] Mobility → signal_change: Via Giuseppe Verdi', 'success');
+      addLog('[AGENT] Transit → 50 buses deployed', 'success');
+    }],
+    [13000, () => {
+      setAgent('safety', 'thinking');
+      addLog('[AGENT] Safety → THINKING', 'info');
+    }],
+    [15000, () => {
+      setAgent('safety', 'complete', OUTPUTS.safety);
+      addCorridor();
+      addLog('[AGENT] Safety → COMPLETE — corridor opened', 'success');
+    }],
+    [17000, () => {
+      setAgent('communications', 'thinking');
+      addLog('[AGENT] Communications → THINKING', 'info');
+    }],
+    [19000, () => {
+      setAgent('communications', 'complete', OUTPUTS.communications);
+      addLog('[AGENT] Broadcast sent (EN + IT)', 'success');
+    }],
+    [21000, () => {
+      setAgent('orchestrator', 'thinking');
+      addLog('[AGENT] Orchestrator → THINKING', 'info');
+    }],
+    [25000, () => {
+      setAgent('orchestrator', 'complete', OUTPUTS.orchestrator);
+      addLog('[ORCH]  Priority HIGH — all agents coordinated', 'success');
+    }],
+    [27000, () => {
+      // Animate metrics to improved values
+      const riskEl = document.getElementById('m-risk');
+      riskEl.classList.remove('danger');
+      riskEl.classList.add('safe');
+      animateCount('m-risk', 0.83, 0.34, 1800, 2);
+      document.getElementById('d-risk').textContent = '↓ Decreasing';
+      document.getElementById('d-risk').className = 'metric-delta good';
+
+      const evacEl = document.getElementById('m-evac');
+      evacEl.classList.remove('danger');
+      evacEl.classList.add('safe');
+      animateCount('m-evac', 28, 18, 1500, 0, '<span style="font-size:0.9rem"> min</span>');
+      document.getElementById('d-evac').textContent = '↓ Optimised';
+      document.getElementById('d-evac').className = 'metric-delta good';
+
+      const respEl = document.getElementById('m-resp');
+      respEl.classList.remove('danger');
+      respEl.classList.add('safe');
+      setTimeout(() => { respEl.textContent = '0:47'; }, 1000);
+      document.getElementById('d-resp').textContent = '↓ Units dispatched';
+      document.getElementById('d-resp').className = 'metric-delta good';
+
+      addLog('[SYS]   Metrics improving…', 'active');
+    }],
+    [30000, () => {
+      document.getElementById('status-dot').className = 'status-dot resolved';
+      document.getElementById('status-text').textContent = 'RESOLVED';
+      document.getElementById('alert-badge').style.display = 'none';
+      addLog('[SYS]   ██ CRISIS CONTAINED ██', 'success');
+      addLog('[SYS]   Evacuation time: 18 min | Response: 0:47', 'success');
+      document.getElementById('run-btn').disabled = false;
+      document.getElementById('run-btn').textContent = '↺ RUN AGAIN';
+      demoRunning = false;
+    }],
+  ];
+
+  schedule.forEach(([delay, fn]) => setTimeout(fn, delay));
+}
+
+/* ── Reset on "RUN AGAIN" ──────────────────────────────────────────── */
+document.getElementById('run-btn').addEventListener('click', () => {
+  if (document.getElementById('run-btn').textContent.includes('AGAIN')) {
+    // Reset agents
+    ['perception','forecast','mobility','transit','safety','communications','orchestrator']
+      .forEach(a => setAgent(a, 'standby'));
+
+    // Remove Cesium overlay entities
+    overlayIds.forEach(id => viewer.entities.removeById(id));
+    overlayIds = [];
+
+    // Reset metrics
+    document.getElementById('m-risk').className  = 'metric-value danger';
+    document.getElementById('m-risk').textContent = '0.83';
+    document.getElementById('d-risk').textContent = '↑ Critical';
+    document.getElementById('d-risk').className   = 'metric-delta bad';
+
+    document.getElementById('m-evac').className  = 'metric-value danger';
+    document.getElementById('m-evac').innerHTML  = '28<span style="font-size:0.9rem"> min</span>';
+    document.getElementById('d-evac').textContent = '—';
+    document.getElementById('d-evac').className   = 'metric-delta';
+
+    document.getElementById('m-resp').className  = 'metric-value danger';
+    document.getElementById('m-resp').textContent = '3:12';
+    document.getElementById('d-resp').textContent = '—';
+    document.getElementById('d-resp').className   = 'metric-delta';
+
+    document.getElementById('m-buses').className  = 'metric-value';
+    document.getElementById('m-buses').textContent = '0';
+    document.getElementById('d-buses').textContent = '—';
+    document.getElementById('d-buses').className   = 'metric-delta';
+
+    // Reset log
+    document.getElementById('log-entries').innerHTML = `
+      <div class="log-entry info">[SYSTEM] OlympusOS v1.0 initialised</div>
+      <div class="log-entry info">[SYSTEM] 7 agents registered</div>
+      <div class="log-entry">[SYSTEM] Awaiting scenario trigger…</div>
+    `;
+
+    // Reset topbar
+    document.getElementById('status-dot').className = 'status-dot';
+    document.getElementById('status-text').textContent = 'STANDBY';
+    document.getElementById('alert-badge').style.display = 'none';
+    document.getElementById('run-btn').textContent = '▶ RUN DEMO';
+  }
+});
+
+/* ── Cesium handles resize automatically ─────────────────────────── */
+</script>
+</body>
+</html>

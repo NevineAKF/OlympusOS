@@ -418,15 +418,14 @@ window.addEventListener('DOMContentLoaded', () => {
       },
     });
 
-    // Start camera fly-in over San Siro
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4781, 800),
+    // Camera — instant position over San Siro
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4781, 1500),
       orientation: {
         heading: Cesium.Math.toRadians(0),
-        pitch: Cesium.Math.toRadians(-45),
-        roll: 0.0,
+        pitch: Cesium.Math.toRadians(-50),
+        roll: 0,
       },
-      duration: 3,
     });
 
     // Per-frame: reposition speech bubbles
@@ -755,11 +754,10 @@ function startDemo() {
   document.getElementById('log-entries').innerHTML =
     '<div class="le info">[SYS] Demo sequence started</div>';
 
-  // Fly camera to San Siro
-  viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4781, 800),
-    orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-45), roll: 0 },
-    duration: 2,
+  // Reset camera to San Siro overview
+  viewer.camera.setView({
+    destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4781, 1500),
+    orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-50), roll: 0 },
   });
 
   // Hit backend

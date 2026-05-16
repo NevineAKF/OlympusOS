@@ -306,6 +306,8 @@ html, body {
 <script>
 'use strict';
 
+const GOOGLE_MAPS_API_KEY = '__GOOGLE_MAPS_API_KEY__';
+
 // ── Cesium init ──────────────────────────────────────────────────────────────
 Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjOWExMzVmOS02MDk4LTQ1MTUtOGYwOS0wYTZhOWI3MWViNDkiLCJpZCI6NDMxOTI2LCJzdWIiOiJOZXZpbmUgQUtGIiwiaXNzIjoiaHR0cHM6Ly9pb24uY2VzaXVtLmNvbSIsImF1ZCI6Ik9seW1wdXNPUyIsImlhdCI6MTc3ODg2ODkwM30.L5nBg0vpPW0FCm2nmkF_H17s5LwQGmcDyFtS8Bh0seg';
 
@@ -328,10 +330,9 @@ const AGENT_POS = {
 // Active bubble world positions (Cartesian3) for per-frame repositioning
 const bubblePositions = {};
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   try {
     viewer = new Cesium.Viewer('cesiumContainer', {
-      terrain:               Cesium.Terrain.fromWorldTerrain(),
       baseLayerPicker:       false,
       geocoder:              false,
       homeButton:            false,
@@ -344,19 +345,26 @@ window.addEventListener('DOMContentLoaded', () => {
       selectionIndicator:    false,
     });
 
-    // Esri satellite imagery (free, no token)
+    // Google Photorealistic 3D Tiles carry their own imagery and terrain
     viewer.imageryLayers.removeAll();
-    viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      maximumLevel: 19,
-    }));
-
+    viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
     viewer.scene.globe.enableLighting = false;
 
-    // 3D OSM buildings
-    Cesium.Cesium3DTileset.fromIonAssetId(96188).then(ts => {
-      viewer.scene.primitives.add(ts);
-    }).catch(e => console.warn('OSM buildings:', e));
+    try {
+      const tileset = await Cesium.Cesium3DTileset.fromUrl(
+        `https://tile.googleapis.com/v1/3dtiles/root.json?key=${GOOGLE_MAPS_API_KEY}`,
+        { showCreditsOnScreen: true }
+      );
+      viewer.scene.primitives.add(tileset);
+      console.log('Google Photorealistic 3D Tiles loaded');
+    } catch (e) {
+      console.error('Google 3D Tiles failed:', e);
+      const fallback = await Cesium.Cesium3DTileset.fromIonAssetId(96188);
+      viewer.scene.primitives.add(fallback);
+    }
+
+    // Prevent home button snapping to default world view
+    viewer.homeButton && (viewer.scene.screenSpaceCameraController.enableLook = true);
 
     // Point primitive collections
     pedestrianPrims = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
@@ -418,15 +426,28 @@ window.addEventListener('DOMContentLoaded', () => {
       },
     });
 
-    // Camera — instant position over San Siro
+    // Lock camera LOW and CLOSE to San Siro — street-level 3D view
     viewer.camera.setView({
-      destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4781, 1500),
+      destination: Cesium.Cartesian3.fromDegrees(9.1235, 45.4770, 450),
       orientation: {
-        heading: Cesium.Math.toRadians(0),
-        pitch: Cesium.Math.toRadians(-50),
+        heading: Cesium.Math.toRadians(30),
+        pitch: Cesium.Math.toRadians(-25),
         roll: 0,
       },
     });
+
+    // After tiles load, orbit to a reveal angle so the stadium reads clearly
+    setTimeout(() => {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4775, 500),
+        orientation: {
+          heading: Cesium.Math.toRadians(45),
+          pitch: Cesium.Math.toRadians(-30),
+          roll: 0,
+        },
+        duration: 3,
+      });
+    }, 3000);
 
     // Per-frame: reposition speech bubbles
     viewer.scene.postRender.addEventListener(repositionBubbles);
@@ -754,10 +775,10 @@ function startDemo() {
   document.getElementById('log-entries').innerHTML =
     '<div class="le info">[SYS] Demo sequence started</div>';
 
-  // Reset camera to San Siro overview
+  // Reset camera to San Siro street-level view
   viewer.camera.setView({
-    destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4781, 1500),
-    orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-50), roll: 0 },
+    destination: Cesium.Cartesian3.fromDegrees(9.1235, 45.4770, 450),
+    orientation: { heading: Cesium.Math.toRadians(30), pitch: Cesium.Math.toRadians(-25), roll: 0 },
   });
 
   // Hit backend

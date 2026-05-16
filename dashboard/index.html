@@ -328,7 +328,7 @@ const AGENT_POS = {
 // Active bubble world positions (Cartesian3) for per-frame repositioning
 const bubblePositions = {};
 
-window.addEventListener('DOMContentLoaded', async () => {
+window.addEventListener('DOMContentLoaded', () => {
   try {
     viewer = new Cesium.Viewer('cesiumContainer', {
       terrain:               Cesium.Terrain.fromWorldTerrain(),
@@ -344,20 +344,19 @@ window.addEventListener('DOMContentLoaded', async () => {
       selectionIndicator:    false,
     });
 
-    // Disable terrain — conflicts with photorealistic tiles
-    viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+    // Esri satellite imagery (free, no token)
+    viewer.imageryLayers.removeAll();
+    viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      maximumLevel: 19,
+    }));
 
     viewer.scene.globe.enableLighting = false;
 
-    // Google Photorealistic 3D Tiles (includes own imagery — remove base layers)
-    viewer.imageryLayers.removeAll();
-    try {
-      const tileset = await Cesium.createGooglePhotorealistic3DTileset();
-      viewer.scene.primitives.add(tileset);
-    } catch (e) {
-      console.error('Google 3D Tiles failed, falling back to OSM Buildings', e);
-      Cesium.Cesium3DTileset.fromIonAssetId(96188).then(t => viewer.scene.primitives.add(t));
-    }
+    // 3D OSM buildings
+    Cesium.Cesium3DTileset.fromIonAssetId(96188).then(ts => {
+      viewer.scene.primitives.add(ts);
+    }).catch(e => console.warn('OSM buildings:', e));
 
     // Point primitive collections
     pedestrianPrims = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
@@ -419,15 +418,15 @@ window.addEventListener('DOMContentLoaded', async () => {
       },
     });
 
-    // Start camera at street-level 3D angle over San Siro
+    // Start camera fly-in over San Siro
     viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4775, 500),
+      destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4781, 800),
       orientation: {
-        heading: Cesium.Math.toRadians(30),
-        pitch: Cesium.Math.toRadians(-25),
-        roll: 0,
+        heading: Cesium.Math.toRadians(0),
+        pitch: Cesium.Math.toRadians(-45),
+        roll: 0.0,
       },
-      duration: 0,
+      duration: 3,
     });
 
     // Per-frame: reposition speech bubbles
@@ -756,10 +755,10 @@ function startDemo() {
   document.getElementById('log-entries').innerHTML =
     '<div class="le info">[SYS] Demo sequence started</div>';
 
-  // Fly camera to San Siro street-level view
+  // Fly camera to San Siro
   viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4775, 500),
-    orientation: { heading: Cesium.Math.toRadians(30), pitch: Cesium.Math.toRadians(-25), roll: 0 },
+    destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4781, 800),
+    orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-45), roll: 0 },
     duration: 2,
   });
 

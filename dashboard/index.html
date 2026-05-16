@@ -283,7 +283,8 @@
       font-size: 17px;
       pointer-events: none;
       transform: translate(-50%, -50%);
-      transition: width 0.3s ease, height 0.3s ease, background 0.3s, box-shadow 0.3s;
+      opacity: 0.3;
+      transition: width 0.3s ease, height 0.3s ease, background 0.3s, box-shadow 0.3s, opacity 0.3s;
     }
     .aicon.lit {
       width: 60px; height: 60px;
@@ -441,13 +442,13 @@
 
 /* ── AGENT CONFIG ────────────────────────────────────────────────────────── */
 const AGENTS = {
-  perception:     { lng:9.1238, lat:45.4783, alt:0,   label:'Perception',     freq:440 },
-  forecast:       { lng:9.1409, lat:45.4856, alt:0,   label:'Forecast',       freq:523 },
-  mobility:       { lng:9.1280, lat:45.4790, alt:0,   label:'Mobility',       freq:587 },
-  transit:        { lng:9.1330, lat:45.4940, alt:0,   label:'Transit',        freq:659 },
-  safety:         { lng:9.1245, lat:45.4810, alt:0,   label:'Safety',         freq:698 },
-  communications: { lng:9.1240, lat:45.4781, alt:0,   label:'Communications', freq:783 },
-  orchestrator:   { lng:9.1240, lat:45.4781, alt:200, label:'Orchestrator',   freq:880 }
+  perception:     { lng:9.12480, lat:45.47880, alt:5,   label:'Perception',     freq:440 },
+  forecast:       { lng:9.14090, lat:45.48560, alt:5,   label:'Forecast',       freq:523 },
+  mobility:       { lng:9.13000, lat:45.47700, alt:5,   label:'Mobility',       freq:587 },
+  transit:        { lng:9.11500, lat:45.49100, alt:5,   label:'Transit',        freq:659 },
+  safety:         { lng:9.12430, lat:45.48200, alt:5,   label:'Safety',         freq:698 },
+  communications: { lng:9.12400, lat:45.47810, alt:5,   label:'Communications', freq:783 },
+  orchestrator:   { lng:9.12400, lat:45.47810, alt:250, label:'Orchestrator',   freq:880 }
 };
 
 const agentPos = {};
@@ -458,12 +459,20 @@ Object.entries(AGENTS).forEach(([k, a]) => {
 /* ── STATE ───────────────────────────────────────────────────────────────── */
 const SAN_SIRO = { lng:9.1240, lat:45.4781 };
 let demoRunning   = false;
+let demoOverride  = false;
+let demoTimers    = [];
 let metroFailed   = false;
 let respTimer     = null;
 let respSec       = 0;
 let audioCtx      = null;
 let pedestrians   = [];
 let lastPedTick   = 0;
+let ambColl       = null;
+let busCinema     = [];
+let ambState      = [];
+let busAnimIv     = null;
+let ambAnimIv     = null;
+let idleFlyTimer  = null;
 
 /* ── WEB AUDIO ───────────────────────────────────────────────────────────── */
 function getACtx() {
@@ -508,6 +517,7 @@ viewer.imageryLayers.removeAll();
 viewer.scene.globe.show              = false;
 viewer.scene.backgroundColor         = new Cesium.Color(0.039, 0.055, 0.102, 1.0);
 viewer.scene.skyAtmosphere.show      = false;
+viewer.scene.screenSpaceCameraController.enableInputs = false;
 
 /* Load Google Photorealistic 3D Tiles */
 (async () => {
@@ -533,7 +543,7 @@ viewer.camera.setView({
 });
 
 /* Slow orbital flyTo after 4 s */
-setTimeout(() => {
+idleFlyTimer = setTimeout(() => {
   viewer.camera.flyTo({
     destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4775, 550),
     orientation: {
@@ -640,7 +650,7 @@ function seedPedestrians() {
     const lat    = SAN_SIRO.lat + Math.sin(ang) * rad;
     const speed  = 0.000003 + Math.random() * 0.000004;
     const pt = pedColl.add({
-      position: Cesium.Cartesian3.fromDegrees(lng, lat, 0),
+      position: Cesium.Cartesian3.fromDegrees(lng, lat, 5),
       color:    Cesium.Color.fromCssColorString('#ff6b35'),
       pixelSize: 6
     });
@@ -655,7 +665,7 @@ function tickPedestrians(ts) {
   pedestrians.forEach(p => {
     p.lng += p.dlng + (Math.random()-0.5)*0.0000015;
     p.lat += p.dlat + (Math.random()-0.5)*0.0000015;
-    p.pt.position = Cesium.Cartesian3.fromDegrees(p.lng, p.lat, 0);
+    p.pt.position = Cesium.Cartesian3.fromDegrees(p.lng, p.lat, 5);
   });
 }
 
@@ -668,7 +678,7 @@ function ingestPedestrians(persons, highDensity) {
       position: Cesium.Cartesian3.fromDegrees(
         p.x != null ? p.x : SAN_SIRO.lng + (Math.random()-0.5)*0.004,
         p.y != null ? p.y : SAN_SIRO.lat + (Math.random()-0.5)*0.004,
-        0
+        5
       ),
       color:     Cesium.Color.fromCssColorString(red ? '#ff0033' : '#ff6b35'),
       pixelSize: red ? 8 : 6
@@ -683,7 +693,7 @@ function ingestBuses(vehicles) {
       position: Cesium.Cartesian3.fromDegrees(
         v.x != null ? v.x : SAN_SIRO.lng + (Math.random()-0.5)*0.012,
         v.y != null ? v.y : SAN_SIRO.lat + (Math.random()-0.5)*0.012,
-        0
+        5
       ),
       color:    Cesium.Color.fromCssColorString('#00d4ff'),
       pixelSize: 10
@@ -753,6 +763,7 @@ connectWS();
 
 /* ── MESSAGE DISPATCH ────────────────────────────────────────────────────── */
 function dispatch(msg) {
+  if (demoOverride) return;
   const t = msg.type || msg.event;
   switch (t) {
     case 'sim_state':    onSimState(msg);    break;
@@ -843,9 +854,9 @@ function onContained() {
 function startCommsFlow() {
   const panel = document.getElementById('txPanel');
   panel.classList.add('on');
-  const audio = new Audio('/audio/emergency_call.wav');
-  audio.play().catch(() => {});
-  sysLog('AGENT', 'Communications: playing emergency call audio');
+  // const audio = new Audio('/audio/emergency_call.wav'); // no voice — cinematic bell only
+  // audio.play().catch(() => {});
+  sysLog('AGENT', 'Communications: broadcast initiated');
 }
 
 /* ── RESPONSE TIMER ──────────────────────────────────────────────────────── */
@@ -925,40 +936,355 @@ function typewrite(el, text, ms) {
 }
 
 /* ── RUN DEMO BUTTON ─────────────────────────────────────────────────────── */
-document.getElementById('runBtn').addEventListener('click', async () => {
+document.getElementById('runBtn').addEventListener('click', () => {
   if (demoRunning) return;
   demoRunning = true;
-  getACtx(); // unlock audio on first user gesture
-
+  getACtx();
+  if (idleFlyTimer) { clearTimeout(idleFlyTimer); idleFlyTimer = null; }
   const btn = document.getElementById('runBtn');
   btn.textContent = '● RUNNING';
   btn.disabled = true;
-  setStatus('active');
-  startRespTimer();
-  sysLog('SYS', 'Demo initiated — OlympusOS activating all agents');
-
-  try {
-    const r = await fetch('/run_demo', { method: 'POST' });
-    sysLog('SYS', 'Backend ACK: ' + r.status);
-  } catch(e) {
-    sysLog('SYS', 'Demo request dispatched');
-  }
-
-  // Fallback: re-enable after 90 s if no crisis_contained received
-  setTimeout(() => {
-    if (demoRunning) {
-      demoRunning = false;
-      btn.textContent = '✓ RUN AGAIN';
-      btn.disabled = false;
-      if (respTimer) { clearInterval(respTimer); respTimer = null; }
-    }
-  }, 90000);
+  startDemo();
 });
 
 /* ── INIT LOGS ───────────────────────────────────────────────────────────── */
 sysLog('SYS', 'OlympusOS v1.0 — Crisis Intelligence Platform');
 sysLog('SYS', 'San Siro Stadium, Milan — 75,000 capacity event');
 sysLog('SYS', 'Connecting WebSocket to crisis management backend…');
+
+/* ── CINEMATIC HELPERS ───────────────────────────────────────────────────── */
+function at(ms, fn) { const id = setTimeout(fn, ms); demoTimers.push(id); return id; }
+
+function camFly(lng, lat, alt, heading, pitch, duration) {
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(lng, lat, alt),
+    orientation: { heading: Cesium.Math.toRadians(heading), pitch: Cesium.Math.toRadians(pitch), roll: 0 },
+    duration: duration
+  });
+}
+
+function dimAllIcons() {
+  Object.keys(AGENTS).forEach(k => {
+    const el = document.getElementById('ai-' + k);
+    if (el) { el.style.opacity = '0.3'; el.classList.remove('lit'); }
+  });
+}
+
+function activateIcon(key) {
+  dimAllIcons();
+  const el = document.getElementById('ai-' + key);
+  if (el) { el.style.opacity = '1'; el.classList.add('lit'); }
+}
+
+function deactivateIcon(key) {
+  const el = document.getElementById('ai-' + key);
+  if (el) { el.style.opacity = '0.3'; el.classList.remove('lit'); }
+}
+
+function hideAllBubbles() {
+  Object.keys(AGENTS).forEach(k => {
+    const b = document.getElementById('ab-' + k);
+    if (b) { b.classList.remove('on'); b.style.opacity = ''; }
+  });
+}
+
+function showBubble(key, text) {
+  hideAllBubbles();
+  const b   = document.getElementById('ab-' + key);
+  const msg = document.getElementById('bm-' + key);
+  if (b)   { b.style.opacity = '1'; b.classList.add('on'); }
+  if (msg) typewrite(msg, text, 28);
+}
+
+function hideBubble(key) {
+  const b = document.getElementById('ab-' + key);
+  if (!b || !b.classList.contains('on')) return;
+  b.style.transition = 'opacity 0.3s';
+  b.style.opacity = '0';
+  setTimeout(() => { b.classList.remove('on'); b.style.opacity = ''; b.style.transition = ''; }, 310);
+}
+
+function spawnPedestrians80() {
+  pedColl.removeAll();
+  pedestrians = [];
+  for (let i = 0; i < 80; i++) {
+    const ang   = Math.random() * Math.PI * 2;
+    const rad   = 0.0004 + Math.random() * 0.002;
+    const lng   = SAN_SIRO.lng + Math.cos(ang) * rad;
+    const lat   = SAN_SIRO.lat + Math.sin(ang) * rad;
+    const speed = 0.000003 + Math.random() * 0.000005;
+    const pt = pedColl.add({
+      position: Cesium.Cartesian3.fromDegrees(lng, lat, 5),
+      color:    Cesium.Color.fromCssColorString('#ff6b35'),
+      pixelSize: 6
+    });
+    pedestrians.push({ pt, lng, lat, dlng: Math.cos(ang)*speed, dlat: Math.sin(ang)*speed, red: false, green: false });
+  }
+}
+
+function reddenPedsNearGate4() {
+  let n = 0;
+  pedestrians.forEach(p => {
+    if (n >= 35) return;
+    const dx = p.lng - 9.1240, dy = p.lat - 45.4775;
+    if (Math.sqrt(dx*dx + dy*dy) < 0.003) {
+      p.pt.color     = Cesium.Color.fromCssColorString('#ff0033');
+      p.pt.pixelSize = 9;
+      p.red  = true;
+      p.dlng = (Math.random()-0.5)*0.0000004;
+      p.dlat = (Math.random()-0.5)*0.0000004;
+      n++;
+    }
+  });
+}
+
+function flowPedestriansNorth() {
+  pedestrians.forEach(p => {
+    p.dlng = (Math.random()-0.5)*0.0000008;
+    p.dlat = 0.000005 + Math.random()*0.000003;
+    if (p.red) {
+      p.pt.color     = Cesium.Color.fromCssColorString('#39ff14');
+      p.pt.pixelSize = 6;
+      p.red = false; p.green = true;
+    }
+  });
+}
+
+function interpRoute(pts, t) {
+  const n   = pts.length - 1;
+  const seg = Math.min(Math.floor(t * n), n - 1);
+  const st  = t * n - seg;
+  const a   = pts[seg], b = pts[seg + 1];
+  return { lng: a.lng + (b.lng - a.lng) * st, lat: a.lat + (b.lat - a.lat) * st };
+}
+
+function spawnCinemaBuses() {
+  busColl.removeAll();
+  busCinema = [];
+  const route = [
+    { lng: 9.1180, lat: 45.4900 },
+    { lng: 9.1240, lat: 45.4781 },
+    { lng: 9.2010, lat: 45.4862 }
+  ];
+  for (let i = 0; i < 30; i++) {
+    const pt = busColl.add({
+      position: Cesium.Cartesian3.fromDegrees(route[0].lng, route[0].lat, 5),
+      color:    Cesium.Color.fromCssColorString('#00d4ff'),
+      pixelSize: 9
+    });
+    busCinema.push({ pt, offset: Math.random() * 0.25, route });
+  }
+  if (busAnimIv) clearInterval(busAnimIv);
+  const t0 = performance.now();
+  busAnimIv = setInterval(() => {
+    const elapsed = (performance.now() - t0) / 25000;
+    busCinema.forEach(b => {
+      const pos = interpRoute(b.route, Math.min(elapsed + b.offset, 1.0));
+      b.pt.position = Cesium.Cartesian3.fromDegrees(pos.lng, pos.lat, 5);
+    });
+  }, 16);
+}
+
+function spawnAmbulances() {
+  if (!ambColl) ambColl = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
+  ambColl.removeAll();
+  ambState = [];
+  [{ lng: 9.1235, lat: 45.4742 }, { lng: 9.1246, lat: 45.4738 }].forEach(s => {
+    const pt = ambColl.add({
+      position: Cesium.Cartesian3.fromDegrees(s.lng, s.lat, 5),
+      color:    Cesium.Color.fromCssColorString('#ff0033'),
+      pixelSize: 12
+    });
+    ambState.push({ pt, slng: s.lng, slat: s.lat, tlng: 9.1240, tlat: 45.4781, prog: 0 });
+  });
+  if (ambAnimIv) clearInterval(ambAnimIv);
+  const t0 = performance.now();
+  ambAnimIv = setInterval(() => {
+    const elapsed = (performance.now() - t0) / 9000;
+    const flash   = Math.sin(Date.now() / 160) > 0;
+    ambState.forEach(a => {
+      a.prog = Math.min(elapsed, 1.0);
+      a.pt.position = Cesium.Cartesian3.fromDegrees(
+        a.slng + (a.tlng - a.slng) * a.prog,
+        a.slat + (a.tlat - a.slat) * a.prog, 5
+      );
+      a.pt.color     = flash ? Cesium.Color.fromCssColorString('#ff0033') : Cesium.Color.WHITE;
+      a.pt.pixelSize = flash ? 13 : 10;
+    });
+  }, 16);
+}
+
+/* ── CINEMATIC TIMELINE — 62 s scripted movie ───────────────────────────── */
+function startDemo() {
+  demoTimers.forEach(clearTimeout);
+  demoTimers   = [];
+  demoOverride = true;
+  metroFailed  = false;
+
+  pedColl.removeAll(); pedestrians = [];
+  busColl.removeAll();
+  if (ambColl) ambColl.removeAll();
+  else ambColl = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
+  if (busAnimIv) { clearInterval(busAnimIv); busAnimIv = null; }
+  if (ambAnimIv) { clearInterval(ambAnimIv); ambAnimIv = null; }
+  evacLine.polyline.show = false;
+  evacGlow.polyline.show = false;
+  hideAllBubbles();
+  dimAllIcons();
+  document.getElementById('txPanel').classList.remove('on');
+  document.getElementById('txBody').textContent = '';
+  setVal('mRisk',  '0.83', 'danger',  true);
+  setVal('mEvac',  '28',   'danger',  false);
+  setVal('mBuses', '0',    'neutral', false);
+  const respEl0 = document.getElementById('mResp');
+  if (respEl0) { respEl0.textContent = '0:00'; respEl0.className = 'mval neutral'; }
+  if (respTimer) { clearInterval(respTimer); respTimer = null; }
+
+  /* T+0s — Wide aerial over San Siro */
+  at(0, () => {
+    camFly(9.1280, 45.4780, 1200, 30, -45, 2);
+    setStatus('active');
+    startRespTimer();
+    spawnPedestrians80();
+    sysLog('SYS', 'Crisis scenario initiated');
+  });
+
+  /* T+3s — Fly close to Gate 4 */
+  at(3000, () => camFly(9.1240, 45.4775, 280, 0, -25, 2.5));
+
+  /* T+6s — PERCEPTION */
+  at(6000, () => {
+    beep(440);
+    activateIcon('perception');
+    reddenPedsNearGate4();
+    showBubble('perception', 'Crowd anomaly detected at Gate 4. Severity 0.83. 12,047 people. Pathways failing.');
+    sysLog('AGENT', 'Perception → COMPLETE');
+  });
+
+  /* T+11s — Hide Perception, fly to Metro Lotto */
+  at(11000, () => {
+    hideBubble('perception');
+    deactivateIcon('perception');
+    camFly(9.1340, 45.4830, 400, 270, -25, 2);
+  });
+
+  /* T+14s — FORECAST */
+  at(14000, () => {
+    beep(523);
+    activateIcon('forecast');
+    metroFailed = true;
+    showBubble('forecast', 'Crowd crush imminent. Risk 91%. Forecast: 10 minutes to critical state.');
+    sysLog('AGENT', 'Forecast → COMPLETE');
+  });
+
+  /* T+19s — Hide Forecast, fly to Via Verdi */
+  at(19000, () => {
+    hideBubble('forecast');
+    deactivateIcon('forecast');
+    camFly(9.1300, 45.4775, 350, 90, -30, 2);
+  });
+
+  /* T+22s — MOBILITY */
+  at(22000, () => {
+    beep(587);
+    activateIcon('mobility');
+    showBubble('mobility', 'Rerouting Via Verdi. Signal cycle changed. Traffic flow +30%.');
+    sysLog('AGENT', 'Mobility → COMPLETE');
+  });
+
+  /* T+27s — Hide Mobility, fly to Bus Depot */
+  at(27000, () => {
+    hideBubble('mobility');
+    deactivateIcon('mobility');
+    camFly(9.1180, 45.4900, 700, 130, -30, 2);
+  });
+
+  /* T+30s — TRANSIT */
+  at(30000, () => {
+    beep(659);
+    activateIcon('transit');
+    spawnCinemaBuses();
+    showBubble('transit', 'Deploying 50 buses. Route: San Siro → Central Station. ETA 4 minutes.');
+    countUp('mBuses', 50);
+    sysLog('AGENT', 'Transit → COMPLETE');
+  });
+
+  /* T+35s — Hide Transit, fly to Corridor */
+  at(35000, () => {
+    hideBubble('transit');
+    deactivateIcon('transit');
+    camFly(9.1244, 45.4810, 350, 0, -30, 2);
+  });
+
+  /* T+38s — SAFETY */
+  at(38000, () => {
+    beep(698);
+    activateIcon('safety');
+    openCorridor();
+    flowPedestriansNorth();
+    spawnAmbulances();
+    showBubble('safety', 'Corridor opened via Via Leonardo da Vinci. 20 security units deployed. 10 medical units.');
+    setVal('mRisk', '0.34', 'safe', true);
+    setVal('mEvac', '18',   'safe', false);
+    sysLog('AGENT', 'Safety → COMPLETE');
+  });
+
+  /* T+44s — Hide Safety, fly to Stadium center */
+  at(44000, () => {
+    hideBubble('safety');
+    deactivateIcon('safety');
+    camFly(9.1240, 45.4781, 320, 30, -28, 2);
+  });
+
+  /* T+47s — COMMUNICATIONS + live transcript */
+  at(47000, () => {
+    beep(783);
+    activateIcon('communications');
+    const panel = document.getElementById('txPanel');
+    panel.classList.add('on');
+    const body  = document.getElementById('txBody');
+    body.textContent = '';
+    const words = 'Operator to all units. Crowd surge at Gate 4. Evacuation corridor open via Via Leonardo da Vinci. Fifty buses dispatched to Central Station. All gates two six eight reopened. Maintain calm. Proceed with controlled discharge.'.split(' ');
+    let wi = 0;
+    const txIv = setInterval(() => {
+      if (wi >= words.length) { clearInterval(txIv); return; }
+      body.textContent += (wi > 0 ? ' ' : '') + words[wi++];
+      body.scrollTop = body.scrollHeight;
+    }, 280);
+    showBubble('communications', 'Bilingual alert broadcast. EN + IT. Gates 2, 6, 8 reopened.');
+    sysLog('AGENT', 'Communications → COMPLETE');
+  });
+
+  /* T+55s — Hide Communications, wide orbital */
+  at(55000, () => {
+    hideBubble('communications');
+    deactivateIcon('communications');
+    camFly(9.1280, 45.4790, 1500, 30, -50, 3);
+  });
+
+  /* T+58s — ORCHESTRATOR */
+  at(58000, () => {
+    beep(880);
+    activateIcon('orchestrator');
+    showBubble('orchestrator', 'Crisis contained. All agents coordinated. Evacuation: 18 minutes. Response time: 47 seconds.');
+    setStatus('resolved');
+    if (respTimer) { clearInterval(respTimer); respTimer = null; }
+    const respEl = document.getElementById('mResp');
+    if (respEl) { respEl.textContent = '0:47'; respEl.className = 'mval safe'; }
+    sysLog('ORCH', 'CRISIS CONTAINED');
+  });
+
+  /* T+62s — Wrap-up */
+  at(62000, () => {
+    deactivateIcon('orchestrator');
+    hideBubble('orchestrator');
+    demoRunning  = false;
+    demoOverride = false;
+    const btn = document.getElementById('runBtn');
+    btn.textContent = '↺ RUN AGAIN';
+    btn.disabled = false;
+  });
+}
 </script>
 </body>
 </html>

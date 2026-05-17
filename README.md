@@ -35,6 +35,24 @@ No login required. Click **▶ RUN DEMO** to launch the full 90-second cinematic
 
 ---
 
+## ⚠️ Important Context — Beyond the Olympics
+
+OlympusOS was demonstrated using the Milano Cortina 2026 Winter Olympics as a scenario — not because it is limited to Olympic events, but because a mega-event represents the ultimate stress test for urban intelligence systems.
+
+The real scope of OlympusOS is much broader:
+
+- 🏙️ **Smart city management** — continuous AI coordination of urban systems
+- 🚨 **Crisis management** — autonomous response to any large-scale emergency
+- ⚡ **Energy optimization** — intelligent load balancing during peak demand
+- 🚦 **Traffic & mobility** — city-wide flow optimization in real time
+- 🌊 **Disaster response** — coordinated multi-agency AI orchestration
+- 🏥 **Public health emergencies** — resource allocation and communication
+- 🎭 **Any high-density event** — concerts, political summits, festivals
+
+The Olympics scenario was chosen because it is immediate (Milano Cortina 2026 launches in months), globally recognized, and operationally extreme. It is the perfect proof-of-concept for a system designed to scale to any urban challenge.
+
+---
+
 ## ⚡ The Problem
 
 Large-scale events expose fundamental fragility in urban systems:

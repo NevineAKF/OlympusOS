@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OlympusOS — Crisis Intelligence Platform</title>
+  <script>window.CESIUM_BASE_URL = 'https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/';</script>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:     #0a0e1a;
+      --cyan:   #00d4ff;
+      --orange: #ff6b35;
+      --green:  #39ff14;
+      --red:    #ff0033;
+      --glass:  rgba(10,14,26,0.88);
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: 'Space Grotesk', sans-serif;
+      color: #fff;
+    }
+
+    /* scanline overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 1px,
+        rgba(0,0,0,0.03) 1px,
+        rgba(0,0,0,0.03) 2px
+      );
+    }
+
+    #cesiumContainer {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* hide Cesium credits */
+    .cesium-widget-credits,
+    .cesium-credit-logoContainer { display: none !important; }
+
+    /* ── TOP BAR ─────────────────────────────────────────────── */
+    #topBar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 22px;
+      background: rgba(10,14,26,0.92);
+      border-bottom: 1px solid rgba(0,212,255,0.25);
+      backdrop-filter: blur(10px);
+    }
+
+    #logo {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--cyan);
+    }
+    #logo em { color: rgba(0,212,255,0.35); font-style: normal; font-weight: 300; }
+
+    #statusWrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 2px;
+    }
+
+    #statusDot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      transition: background 0.5s, box-shadow 0.5s;
+    }
+    #statusDot.active   { background: var(--orange); box-shadow: 0 0 8px var(--orange); animation: blink 1s infinite; }
+    #statusDot.resolved { background: var(--green);  box-shadow: 0 0 14px var(--green); }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+    #runBtn {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 8px 20px;
+      background: transparent;
+      color: var(--cyan);
+      border: 1px solid var(--cyan);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    #runBtn:hover:not(:disabled) {
+      background: rgba(0,212,255,0.1);
+      box-shadow: 0 0 14px rgba(0,212,255,0.45);
+    }
+    #runBtn:disabled { opacity: 0.38; cursor: not-allowed; }
+
+    /* ── METRICS HUD ─────────────────────────────────────────── */
+    #metricsHUD {
+      position: fixed;
+      top: 60px; right: 18px;
+      z-index: 400;
+      background: var(--glass);
+      border: 1px solid rgba(0,212,255,0.22);
+      border-radius: 8px;
+      padding: 14px 18px;
+      min-width: 190px;
+      backdrop-filter: blur(14px);
+    }
+
+    .mrow {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .mrow:last-child { border-bottom: none; }
+
+    .mlbl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+    }
+
+    .mval {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 600;
+      transition: color 1.2s;
+    }
+    .munit {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: rgba(255,255,255,0.35);
+      margin-left: 2px;
+    }
+    .danger  { color: var(--orange); }
+    .safe    { color: var(--green);  }
+    .neutral { color: var(--cyan);   }
+
+    /* ── SYSTEM LOG ──────────────────────────────────────────── */
+    #sysLog {
+      position: fixed;
+      bottom: 18px; left: 18px;
+      z-index: 400;
+      width: 370px;
+      background: var(--glass);
+      border: 1px solid rgba(0,212,255,0.18);
+      border-radius: 8px;
+      backdrop-filter: blur(14px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: 195px;
+    }
+
+    #logHdr {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      padding: 7px 12px;
+      border-bottom: 1px solid rgba(0,212,255,0.12);
+      text-transform: uppercase;
+    }
+
+    #logBody {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    #logBody::-webkit-scrollbar { width: 3px; }
+    #logBody::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.25); border-radius: 2px; }
+
+    .logline {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.72);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lt  { color: rgba(255,255,255,0.28); }
+    .ts  { color: rgba(180,180,180,0.6); }
+    .ta  { color: var(--cyan); }
+    .to  { color: var(--green); }
+
+    /* ── TRANSCRIPT PANEL ────────────────────────────────────── */
+    #txPanel {
+      position: fixed;
+      bottom: 18px; right: 18px;
+      z-index: 400;
+      width: 330px;
+      max-height: 215px;
+      background: var(--glass);
+      border: 1px solid rgba(0,212,255,0.18);
+      border-radius: 8px;
+      backdrop-filter: blur(14px);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #txPanel.on {
+      display: flex;
+      animation: txGlow 2s ease-in-out infinite alternate;
+    }
+    @keyframes txGlow {
+      0%   { border-color: rgba(0,212,255,0.18); box-shadow: none; }
+      100% { border-color: rgba(0,212,255,0.85); box-shadow: 0 0 22px rgba(0,212,255,0.28); }
+    }
+
+    #txHdr {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      padding: 7px 12px;
+      border-bottom: 1px solid rgba(0,212,255,0.12);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    #txDot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: blink 0.75s infinite;
+    }
+    #txBody {
+      flex: 1;
+      overflow-y: auto;
+      padding: 9px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      line-height: 1.65;
+      color: rgba(255,255,255,0.85);
+      word-break: break-word;
+    }
+    #txBody::-webkit-scrollbar { width: 3px; }
+    #txBody::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.25); border-radius: 2px; }
+
+    /* ── AGENT ICONS ─────────────────────────────────────────── */
+    .aicon {
+      position: fixed;
+      z-index: 300;
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      transition: width 0.3s ease, height 0.3s ease, background 0.3s, box-shadow 0.3s;
+    }
+    .aicon.lit {
+      width: 60px; height: 60px;
+      background: rgba(0,212,255,0.18);
+      box-shadow: 0 0 18px rgba(0,212,255,0.85), 0 0 40px rgba(0,212,255,0.4);
+      animation: iconPulse 1.1s ease-in-out infinite;
+    }
+    @keyframes iconPulse {
+      0%,100% { box-shadow: 0 0 18px rgba(0,212,255,0.85), 0 0 40px rgba(0,212,255,0.4); }
+      50%     { box-shadow: 0 0 28px rgba(0,212,255,1),    0 0 60px rgba(0,212,255,0.6); }
+    }
+
+    /* ── AGENT SPEECH BUBBLES ────────────────────────────────── */
+    .abubble {
+      position: fixed;
+      z-index: 301;
+      display: none;
+      background: rgba(10,14,26,0.87);
+      border: 2px solid var(--cyan);
+      border-radius: 8px;
+      padding: 11px 13px;
+      max-width: 280px;
+      min-width: 180px;
+      pointer-events: none;
+    }
+    .abubble.on { display: block; }
+    /* tail pointing toward icon (bottom-left) */
+    .abubble::after {
+      content: '';
+      position: absolute;
+      bottom: -11px;
+      left: 18px;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 11px solid var(--cyan);
+    }
+
+    .bh {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--cyan);
+      margin-bottom: 5px;
+    }
+    .bm {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      color: rgba(255,255,255,0.88);
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .bmod {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8.5px;
+      color: rgba(255,255,255,0.28);
+      font-style: italic;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="cesiumContainer"></div>
+
+<!-- TOP BAR -->
+<div id="topBar">
+  <div id="logo">Olympus<em>OS</em></div>
+  <div id="statusWrap">
+    <div id="statusDot"></div>
+    <span id="statusTxt">STANDBY</span>
+  </div>
+  <button id="runBtn">&#9654; RUN DEMO</button>
+</div>
+
+<!-- METRICS HUD -->
+<div id="metricsHUD">
+  <div class="mrow">
+    <span class="mlbl">Crowd Risk</span>
+    <span><span id="mRisk"  class="mval danger">0.83</span></span>
+  </div>
+  <div class="mrow">
+    <span class="mlbl">Evacuation</span>
+    <span><span id="mEvac"  class="mval danger">28</span><span class="munit">min</span></span>
+  </div>
+  <div class="mrow">
+    <span class="mlbl">Response</span>
+    <span><span id="mResp"  class="mval neutral">0:00</span></span>
+  </div>
+  <div class="mrow">
+    <span class="mlbl">Buses</span>
+    <span><span id="mBuses" class="mval neutral">0</span></span>
+  </div>
+</div>
+
+<!-- SYSTEM LOG -->
+<div id="sysLog">
+  <div id="logHdr">&#9679; System Log</div>
+  <div id="logBody"></div>
+</div>
+
+<!-- TRANSCRIPT PANEL -->
+<div id="txPanel">
+  <div id="txHdr"><div id="txDot"></div>LIVE TRANSCRIPT — EMERGENCY CALL</div>
+  <div id="txBody"></div>
+</div>
+
+<!-- AGENT ICONS -->
+<div id="ai-perception"     class="aicon">&#128065;</div>
+<div id="ai-forecast"       class="aicon">&#128302;</div>
+<div id="ai-mobility"       class="aicon">&#128678;</div>
+<div id="ai-transit"        class="aicon">&#128652;</div>
+<div id="ai-safety"         class="aicon">&#128737;</div>
+<div id="ai-communications" class="aicon">&#128226;</div>
+<div id="ai-orchestrator"   class="aicon">&#129504;</div>
+
+<!-- AGENT BUBBLES -->
+<div id="ab-perception" class="abubble">
+  <div class="bh">&#128065; Perception</div>
+  <div id="bm-perception" class="bm"></div>
+  <div id="bd-perception" class="bmod"></div>
+</div>
+<div id="ab-forecast" class="abubble">
+  <div class="bh">&#128302; Forecast</div>
+  <div id="bm-forecast" class="bm"></div>
+  <div id="bd-forecast" class="bmod"></div>
+</div>
+<div id="ab-mobility" class="abubble">
+  <div class="bh">&#128678; Mobility</div>
+  <div id="bm-mobility" class="bm"></div>
+  <div id="bd-mobility" class="bmod"></div>
+</div>
+<div id="ab-transit" class="abubble">
+  <div class="bh">&#128652; Transit</div>
+  <div id="bm-transit" class="bm"></div>
+  <div id="bd-transit" class="bmod"></div>
+</div>
+<div id="ab-safety" class="abubble">
+  <div class="bh">&#128737; Safety</div>
+  <div id="bm-safety" class="bm"></div>
+  <div id="bd-safety" class="bmod"></div>
+</div>
+<div id="ab-communications" class="abubble">
+  <div class="bh">&#128226; Communications</div>
+  <div id="bm-communications" class="bm"></div>
+  <div id="bd-communications" class="bmod"></div>
+</div>
+<div id="ab-orchestrator" class="abubble">
+  <div class="bh">&#129504; Orchestrator</div>
+  <div id="bm-orchestrator" class="bm"></div>
+  <div id="bd-orchestrator" class="bmod"></div>
+</div>
+
+<script>
+'use strict';
+
+/* ── AGENT CONFIG ────────────────────────────────────────────────────────── */
+const AGENTS = {
+  perception:     { lng:9.1238, lat:45.4783, alt:0,   label:'Perception',     freq:440 },
+  forecast:       { lng:9.1409, lat:45.4856, alt:0,   label:'Forecast',       freq:523 },
+  mobility:       { lng:9.1280, lat:45.4790, alt:0,   label:'Mobility',       freq:587 },
+  transit:        { lng:9.1330, lat:45.4940, alt:0,   label:'Transit',        freq:659 },
+  safety:         { lng:9.1245, lat:45.4810, alt:0,   label:'Safety',         freq:698 },
+  communications: { lng:9.1240, lat:45.4781, alt:0,   label:'Communications', freq:783 },
+  orchestrator:   { lng:9.1240, lat:45.4781, alt:200, label:'Orchestrator',   freq:880 }
+};
+
+const agentPos = {};
+Object.entries(AGENTS).forEach(([k, a]) => {
+  agentPos[k] = Cesium.Cartesian3.fromDegrees(a.lng, a.lat, a.alt);
+});
+
+/* ── STATE ───────────────────────────────────────────────────────────────── */
+const SAN_SIRO = { lng:9.1240, lat:45.4781 };
+let demoRunning   = false;
+let metroFailed   = false;
+let respTimer     = null;
+let respSec       = 0;
+let audioCtx      = null;
+let pedestrians   = [];
+let lastPedTick   = 0;
+
+/* ── WEB AUDIO ───────────────────────────────────────────────────────────── */
+function getACtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function beep(freq, dur = 0.2) {
+  try {
+    const ctx  = getACtx();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    const t = ctx.currentTime;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.28, t + 0.01);
+    gain.gain.linearRampToValueAtTime(0, t + dur);
+    osc.start(t);
+    osc.stop(t + dur + 0.05);
+  } catch(_) {}
+}
+
+/* ── CESIUM VIEWER ───────────────────────────────────────────────────────── */
+const viewer = new Cesium.Viewer('cesiumContainer', {
+  timeline:               false,
+  animation:              false,
+  baseLayerPicker:        false,
+  geocoder:               false,
+  homeButton:             false,
+  sceneModePicker:        false,
+  navigationHelpButton:   false,
+  fullscreenButton:       false,
+  infoBox:                false,
+  selectionIndicator:     false,
+  terrainProvider:        new Cesium.EllipsoidTerrainProvider()
+});
+
+viewer.imageryLayers.removeAll();
+viewer.scene.globe.show              = false;
+viewer.scene.backgroundColor         = new Cesium.Color(0.039, 0.055, 0.102, 1.0);
+viewer.scene.skyAtmosphere.show      = false;
+
+/* Load Google Photorealistic 3D Tiles */
+(async () => {
+  try {
+    const ts = await Cesium.createGooglePhotorealistic3DTileset({
+      key: '__GOOGLE_MAPS_API_KEY__'
+    });
+    viewer.scene.primitives.add(ts);
+    sysLog('SYS', 'Google Photorealistic 3D Tiles loaded');
+  } catch(e) {
+    sysLog('SYS', 'Tileset: ' + (e.message || 'load error'));
+  }
+})();
+
+/* Initial camera — low and close on San Siro */
+viewer.camera.setView({
+  destination: Cesium.Cartesian3.fromDegrees(9.1235, 45.4770, 450),
+  orientation: {
+    heading: Cesium.Math.toRadians(30),
+    pitch:   Cesium.Math.toRadians(-25),
+    roll:    0.0
+  }
+});
+
+/* Slow orbital flyTo after 4 s */
+setTimeout(() => {
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4775, 550),
+    orientation: {
+      heading: Cesium.Math.toRadians(60),
+      pitch:   Cesium.Math.toRadians(-30),
+      roll:    0.0
+    },
+    duration: 4
+  });
+}, 4000);
+
+/* ── METRO M5 LINE ───────────────────────────────────────────────────────── */
+const metroPositions = Cesium.Cartesian3.fromDegreesArray([
+  9.1238, 45.4783,
+  9.1340, 45.4815,
+  9.1409, 45.4856,
+  9.1510, 45.4905
+]);
+
+const metroEntity = viewer.entities.add({
+  polyline: {
+    positions: metroPositions,
+    width: new Cesium.CallbackProperty(() => metroFailed ? 6 : 4, false),
+    material: new Cesium.ColorMaterialProperty(
+      new Cesium.CallbackProperty(() => {
+        if (!metroFailed) return Cesium.Color.fromCssColorString('#39ff14');
+        const a = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(Date.now() / 290));
+        return new Cesium.Color(1, 0, 0.2, a);
+      }, false)
+    ),
+    clampToGround: true
+  }
+});
+
+const metroLabel = viewer.entities.add({
+  position: Cesium.Cartesian3.fromDegrees(9.1350, 45.4838, 60),
+  label: {
+    text: new Cesium.CallbackProperty(() => metroFailed ? 'M5 SUSPENDED' : 'M5 LINE', false),
+    font: '14px "Space Grotesk", sans-serif',
+    fillColor: new Cesium.CallbackProperty(
+      () => metroFailed
+        ? Cesium.Color.fromCssColorString('#ff0033')
+        : Cesium.Color.fromCssColorString('#39ff14'),
+      false
+    ),
+    outlineColor: Cesium.Color.BLACK,
+    outlineWidth: 2,
+    style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+    pixelOffset: new Cesium.Cartesian2(0, -24),
+    show: true
+  }
+});
+
+/* ── EVACUATION CORRIDOR ─────────────────────────────────────────────────── */
+const evacPositions = Cesium.Cartesian3.fromDegreesArray([
+  9.1240, 45.4781,
+  9.1241, 45.4800,
+  9.1243, 45.4825,
+  9.1245, 45.4850
+]);
+
+const evacGlow = viewer.entities.add({
+  polyline: {
+    positions: evacPositions,
+    width: 20,
+    material: new Cesium.ColorMaterialProperty(
+      Cesium.Color.fromCssColorString('#39ff1466')
+    ),
+    show: false,
+    clampToGround: true
+  }
+});
+
+const evacLine = viewer.entities.add({
+  polyline: {
+    positions: evacPositions,
+    width: 10,
+    material: new Cesium.ColorMaterialProperty(
+      Cesium.Color.fromCssColorString('#39ff14')
+    ),
+    show: false,
+    clampToGround: true
+  }
+});
+
+function openCorridor() {
+  evacLine.polyline.show = true;
+  evacGlow.polyline.show = true;
+  sysLog('AGENT', 'Safety: evacuation corridor open — Via L. da Vinci');
+}
+
+/* ── POINT PRIMITIVE COLLECTIONS ────────────────────────────────────────── */
+const pedColl = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
+const busColl = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
+
+/* Seed 60 initial pedestrians slowly radiating from San Siro */
+function seedPedestrians() {
+  pedColl.removeAll();
+  pedestrians = [];
+  for (let i = 0; i < 60; i++) {
+    const ang    = Math.random() * Math.PI * 2;
+    const rad    = 0.0006 + Math.random() * 0.0025;
+    const lng    = SAN_SIRO.lng + Math.cos(ang) * rad;
+    const lat    = SAN_SIRO.lat + Math.sin(ang) * rad;
+    const speed  = 0.000003 + Math.random() * 0.000004;
+    const pt = pedColl.add({
+      position: Cesium.Cartesian3.fromDegrees(lng, lat, 0),
+      color:    Cesium.Color.fromCssColorString('#ff6b35'),
+      pixelSize: 6
+    });
+    pedestrians.push({ pt, lng, lat, dlng: Math.cos(ang)*speed, dlat: Math.sin(ang)*speed });
+  }
+}
+seedPedestrians();
+
+function tickPedestrians(ts) {
+  if (ts - lastPedTick < 120) return;
+  lastPedTick = ts;
+  pedestrians.forEach(p => {
+    p.lng += p.dlng + (Math.random()-0.5)*0.0000015;
+    p.lat += p.dlat + (Math.random()-0.5)*0.0000015;
+    p.pt.position = Cesium.Cartesian3.fromDegrees(p.lng, p.lat, 0);
+  });
+}
+
+function ingestPedestrians(persons, highDensity) {
+  pedColl.removeAll();
+  pedestrians = [];
+  persons.forEach(p => {
+    const red = highDensity && Math.random() > 0.42;
+    pedColl.add({
+      position: Cesium.Cartesian3.fromDegrees(
+        p.x != null ? p.x : SAN_SIRO.lng + (Math.random()-0.5)*0.004,
+        p.y != null ? p.y : SAN_SIRO.lat + (Math.random()-0.5)*0.004,
+        0
+      ),
+      color:     Cesium.Color.fromCssColorString(red ? '#ff0033' : '#ff6b35'),
+      pixelSize: red ? 8 : 6
+    });
+  });
+}
+
+function ingestBuses(vehicles) {
+  busColl.removeAll();
+  vehicles.forEach(v => {
+    busColl.add({
+      position: Cesium.Cartesian3.fromDegrees(
+        v.x != null ? v.x : SAN_SIRO.lng + (Math.random()-0.5)*0.012,
+        v.y != null ? v.y : SAN_SIRO.lat + (Math.random()-0.5)*0.012,
+        0
+      ),
+      color:    Cesium.Color.fromCssColorString('#00d4ff'),
+      pixelSize: 10
+    });
+  });
+}
+
+/* ── CESIUM POST-RENDER — ICON POSITIONING ───────────────────────────────── */
+viewer.scene.postRender.addEventListener(() => {
+  tickPedestrians(performance.now());
+
+  Object.keys(AGENTS).forEach(k => {
+    const pos = agentPos[k];
+    const wp  = Cesium.SceneTransforms.worldToWindowCoordinates(viewer.scene, pos);
+
+    const icon   = document.getElementById('ai-' + k);
+    const bubble = document.getElementById('ab-' + k);
+
+    if (!wp || wp.x < 0 || wp.y < 0 || wp.x > window.innerWidth || wp.y > window.innerHeight) {
+      if (icon)   icon.style.display   = 'none';
+      if (bubble) bubble.style.display = 'none';
+      return;
+    }
+
+    if (icon) {
+      icon.style.display = 'flex';
+      icon.style.left    = wp.x + 'px';
+      icon.style.top     = wp.y + 'px';
+    }
+
+    if (bubble && bubble.classList.contains('on')) {
+      bubble.style.display = 'block';
+      const bx = Math.min(wp.x + 28, window.innerWidth  - 295);
+      const by = Math.max(wp.y - 135, 68);
+      bubble.style.left = bx + 'px';
+      bubble.style.top  = by + 'px';
+    }
+  });
+});
+
+/* ── WEBSOCKET ───────────────────────────────────────────────────────────── */
+let ws   = null;
+let wsRe = null;
+
+function connectWS() {
+  const url = 'ws://' + location.hostname + '/ws';
+  ws = new WebSocket(url);
+
+  ws.onopen = () => sysLog('SYS', 'WebSocket connected to ' + location.hostname);
+
+  ws.onmessage = evt => {
+    let msg;
+    try { msg = JSON.parse(evt.data); } catch { return; }
+    dispatch(msg);
+  };
+
+  ws.onclose = () => {
+    sysLog('SYS', 'WebSocket closed — reconnecting in 3s');
+    if (wsRe) clearTimeout(wsRe);
+    wsRe = setTimeout(connectWS, 3000);
+  };
+
+  ws.onerror = () => ws.close();
+}
+
+connectWS();
+
+/* ── MESSAGE DISPATCH ────────────────────────────────────────────────────── */
+function dispatch(msg) {
+  const t = msg.type || msg.event;
+  switch (t) {
+    case 'sim_state':    onSimState(msg);    break;
+    case 'agent_thinking': onAgentMsg(msg);  break;
+    case 'agent_event':  onAgentMsg(msg);    break;
+    case 'metric_update': onMetrics(msg);    break;
+    case 'metro_failure': onMetroFail(msg);  break;
+    case 'corridor_open': openCorridor();    break;
+    case 'transcript':   onTranscript(msg);  break;
+    case 'crisis_contained': onContained();  break;
+  }
+}
+
+function onSimState(msg) {
+  const d = msg.data || msg;
+  const ppl = d.persons || d.pedestrians || [];
+  const veh = (d.vehicles || []).filter(v => v.type === 'bus' || v.vtype === 'bus');
+  if (ppl.length) ingestPedestrians(ppl, ppl.length > 48);
+  if (veh.length) ingestBuses(veh);
+}
+
+function onAgentMsg(msg) {
+  const key = (msg.agent || '').toLowerCase();
+  if (!AGENTS[key]) return;
+
+  const text  = msg.message || msg.output || msg.thought || '…';
+  const model = msg.model   || '';
+
+  beep(AGENTS[key].freq);
+
+  const icon   = document.getElementById('ai-' + key);
+  const bubble = document.getElementById('ab-' + key);
+  const msgEl  = document.getElementById('bm-' + key);
+  const modEl  = document.getElementById('bd-' + key);
+
+  if (icon)   icon.classList.add('lit');
+  if (bubble) bubble.classList.add('on');
+  if (modEl)  modEl.textContent = model;
+  if (msgEl)  typewrite(msgEl, text.substring(0, 220), 30);
+
+  sysLog('AGENT', AGENTS[key].label + ': ' + text.substring(0, 90));
+
+  if (key === 'communications') startCommsFlow();
+
+  setTimeout(() => { if (icon) icon.classList.remove('lit'); }, 9000);
+}
+
+function onMetrics(msg) {
+  if (msg.risk       != null) setVal('mRisk',  msg.risk, msg.risk  > 0.5 ? 'danger' : 'safe', true);
+  if (msg.evacuation != null) setVal('mEvac',  msg.evacuation, msg.evacuation > 20 ? 'danger' : 'safe', false);
+  if (msg.buses      != null) countUp('mBuses', msg.buses);
+}
+
+function onMetroFail(msg) {
+  metroFailed = true;
+  beep(220, 0.5);
+  sysLog('SYS', 'ALERT: M5 Metro suspended — switching to bus contingency');
+}
+
+function onTranscript(msg) {
+  const panel = document.getElementById('txPanel');
+  panel.classList.add('on');
+  const body  = document.getElementById('txBody');
+  const words = (msg.words || msg.transcript || msg.text || '').split(/\s+/);
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i >= words.length) { clearInterval(iv); return; }
+    body.textContent += (i > 0 ? ' ' : '') + words[i++];
+    body.scrollTop = body.scrollHeight;
+  }, 200);
+}
+
+function onContained() {
+  setStatus('resolved');
+  sysLog('ORCH', 'Crisis contained — OlympusOS intervention successful');
+  setVal('mRisk', '0.34', 'safe', false);
+  setVal('mEvac', '18',   'safe', false);
+  if (respTimer) { clearInterval(respTimer); respTimer = null; }
+  setTimeout(() => {
+    demoRunning = false;
+    const btn = document.getElementById('runBtn');
+    btn.textContent = '✓ RUN AGAIN';
+    btn.disabled = false;
+  }, 3000);
+}
+
+/* ── COMMS FLOW ──────────────────────────────────────────────────────────── */
+function startCommsFlow() {
+  const panel = document.getElementById('txPanel');
+  panel.classList.add('on');
+  const audio = new Audio('/audio/emergency_call.wav');
+  audio.play().catch(() => {});
+  sysLog('AGENT', 'Communications: playing emergency call audio');
+}
+
+/* ── RESPONSE TIMER ──────────────────────────────────────────────────────── */
+function startRespTimer() {
+  respSec = 0;
+  if (respTimer) clearInterval(respTimer);
+  respTimer = setInterval(() => {
+    respSec++;
+    const m = Math.floor(respSec / 60);
+    const s = respSec % 60;
+    const el = document.getElementById('mResp');
+    if (el) el.textContent = m + ':' + String(s).padStart(2,'0');
+  }, 1000);
+}
+
+/* ── STATUS ──────────────────────────────────────────────────────────────── */
+function setStatus(s) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusTxt');
+  dot.className = '';
+  if (s === 'active')   { dot.classList.add('active');   txt.textContent = 'ACTIVE'; }
+  else if (s === 'resolved') { dot.classList.add('resolved'); txt.textContent = 'RESOLVED'; }
+  else                   { txt.textContent = 'STANDBY'; }
+}
+
+/* ── METRIC HELPERS ──────────────────────────────────────────────────────── */
+function setVal(id, val, cls, isFloat) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = isFloat ? parseFloat(val).toFixed(2) : val;
+  el.className = 'mval ' + (cls || 'neutral');
+}
+
+function countUp(id, target) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const from  = parseFloat(el.textContent) || 0;
+  const steps = 30;
+  const inc   = (target - from) / steps;
+  let cur = from, step = 0;
+  const iv = setInterval(() => {
+    cur += inc; step++;
+    el.textContent = Math.round(cur);
+    if (step >= steps) { el.textContent = target; clearInterval(iv); }
+  }, 50);
+  el.className = 'mval neutral';
+}
+
+/* ── SYSTEM LOG ──────────────────────────────────────────────────────────── */
+function sysLog(tag, msg) {
+  const body = document.getElementById('logBody');
+  const now  = new Date();
+  const ts   = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+  const tagCls = tag === 'SYS' ? 'ts' : tag === 'ORCH' ? 'to' : 'ta';
+  const div  = document.createElement('div');
+  div.className = 'logline';
+  div.innerHTML =
+    '<span class="lt">' + ts + '</span> ' +
+    '<span class="' + tagCls + '">[' + tag + ']</span> ' +
+    esc(msg);
+  body.appendChild(div);
+  while (body.children.length > 8) body.removeChild(body.firstChild);
+  body.scrollTop = body.scrollHeight;
+}
+
+function pad(n) { return String(n).padStart(2,'0'); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ── TYPEWRITER ──────────────────────────────────────────────────────────── */
+function typewrite(el, text, ms) {
+  el.textContent = '';
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i >= text.length) { clearInterval(iv); return; }
+    el.textContent += text[i++];
+  }, ms);
+}
+
+/* ── RUN DEMO BUTTON ─────────────────────────────────────────────────────── */
+document.getElementById('runBtn').addEventListener('click', async () => {
+  if (demoRunning) return;
+  demoRunning = true;
+  getACtx(); // unlock audio on first user gesture
+
+  const btn = document.getElementById('runBtn');
+  btn.textContent = '● RUNNING';
+  btn.disabled = true;
+  setStatus('active');
+  startRespTimer();
+  sysLog('SYS', 'Demo initiated — OlympusOS activating all agents');
+
+  try {
+    const r = await fetch('/run_demo', { method: 'POST' });
+    sysLog('SYS', 'Backend ACK: ' + r.status);
+  } catch(e) {
+    sysLog('SYS', 'Demo request dispatched');
+  }
+
+  // Fallback: re-enable after 90 s if no crisis_contained received
+  setTimeout(() => {
+    if (demoRunning) {
+      demoRunning = false;
+      btn.textContent = '✓ RUN AGAIN';
+      btn.disabled = false;
+      if (respTimer) { clearInterval(respTimer); respTimer = null; }
+    }
+  }, 90000);
+});
+
+/* ── INIT LOGS ───────────────────────────────────────────────────────────── */
+sysLog('SYS', 'OlympusOS v1.0 — Crisis Intelligence Platform');
+sysLog('SYS', 'San Siro Stadium, Milan — 75,000 capacity event');
+sysLog('SYS', 'Connecting WebSocket to crisis management backend…');
+</script>
+</body>
+</html>

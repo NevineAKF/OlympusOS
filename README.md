@@ -9,7 +9,7 @@
 ![Vultr](https://img.shields.io/badge/Deployed_on-Vultr-007BFC?style=for-the-badge&logo=vultr&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-39FF14?style=for-the-badge)
 
-**🔴 LIVE DEMO → [http://66.245.207.177/](http://66.245.207.177/)**
+**🔴 LIVE DEMO → [http://olympusos.ddns.net](http://olympusos.ddns.net)**
 
 Built for Milano Cortina 2026 — Winter Olympics AI Hackathon
 
@@ -29,7 +29,7 @@ Designed for **Milano Cortina 2026**, it represents a new category of urban infr
 
 ## 🎬 Live Demo
 
-**→ [http://66.245.207.177/](http://66.245.207.177/)**
+**→ [http://olympusos.ddns.net](http://olympusos.ddns.net)**
 
 No login required. Click **▶ RUN DEMO** to launch the full 90-second cinematic crisis scenario over a photorealistic 3D rendering of San Siro Stadium, Milan. Watch seven AI agents detect a crowd crush in real time, deliberate, and resolve the incident — no injuries, response time 47 seconds.
 
@@ -117,7 +117,7 @@ Agents communicate through a **CrewAI pipeline** with causal pacing: detection �
                                 |
                      [Vultr Ubuntu 24.04]
                      nginx --> systemd
-                     http://66.245.207.177/
+                     http://olympusos.ddns.net
 ```
 
 ### 🔄 Crisis Response Flow
@@ -355,6 +355,6 @@ This is what it looks like when cities stop reacting and start thinking.
 
 Built for Milano Cortina 2026 — Winter Olympics AI Hackathon
 
-**🔴 [http://66.245.207.177/](http://66.245.207.177/) — Live Demo**
+**🔴 [http://olympusos.ddns.net](http://olympusos.ddns.net) — Live Demo**
 
 [![GitHub](https://img.shields.io/badge/GitHub-NevineAKF%2FOlympusOS-181717?style=for-the-badge&logo=github)](https://github.com/NevineAKF/OlympusOS)

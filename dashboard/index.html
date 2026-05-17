@@ -21,47 +21,33 @@
     }
 
     html, body {
-      width: 100vw;
-      height: 100vh;
+      width: 100vw; height: 100vh;
       overflow: hidden;
       background: var(--bg);
       font-family: 'Space Grotesk', sans-serif;
       color: #fff;
     }
 
-    /* scanline overlay */
     body::after {
       content: '';
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 9999;
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 9999;
       background: repeating-linear-gradient(
         to bottom,
-        transparent 0px,
-        transparent 1px,
-        rgba(0,0,0,0.03) 1px,
-        rgba(0,0,0,0.03) 2px
+        transparent 0px, transparent 1px,
+        rgba(0,0,0,0.03) 1px, rgba(0,0,0,0.03) 2px
       );
     }
 
-    #cesiumContainer {
-      position: absolute;
-      inset: 0;
-    }
+    #cesiumContainer { position: absolute; inset: 0; }
 
-    /* hide Cesium credits */
     .cesium-widget-credits,
     .cesium-credit-logoContainer { display: none !important; }
 
-    /* ── TOP BAR ─────────────────────────────────────────────── */
+    /* ── TOP BAR ── */
     #topBar {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 500;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+      display: flex; align-items: center; justify-content: space-between;
       padding: 10px 22px;
       background: rgba(10,14,26,0.92);
       border-bottom: 1px solid rgba(0,212,255,0.25);
@@ -69,48 +55,34 @@
     }
 
     #logo {
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      color: var(--cyan);
+      font-size: 20px; font-weight: 700;
+      letter-spacing: 4px; text-transform: uppercase; color: var(--cyan);
     }
     #logo em { color: rgba(0,212,255,0.35); font-style: normal; font-weight: 300; }
 
     #statusWrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      display: flex; align-items: center; gap: 8px;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      letter-spacing: 2px;
+      font-size: 12px; letter-spacing: 2px;
     }
 
     #statusDot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 8px var(--green);
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 8px var(--green);
       transition: background 0.5s, box-shadow 0.5s;
     }
     #statusDot.active   { background: var(--orange); box-shadow: 0 0 8px var(--orange); animation: blink 1s infinite; }
-    #statusDot.resolved { background: var(--green);  box-shadow: 0 0 14px var(--green); }
+    #statusDot.resolved { background: var(--green);  box-shadow: 0 0 14px var(--green); animation: none; }
 
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
 
     #runBtn {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      padding: 8px 20px;
-      background: transparent;
-      color: var(--cyan);
-      border: 1px solid var(--cyan);
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.2s, box-shadow 0.2s;
+      font-size: 12px; font-weight: 600; letter-spacing: 2px;
+      text-transform: uppercase; padding: 8px 20px;
+      background: transparent; color: var(--cyan);
+      border: 1px solid var(--cyan); border-radius: 4px;
+      cursor: pointer; transition: background 0.2s, box-shadow 0.2s;
     }
     #runBtn:hover:not(:disabled) {
       background: rgba(0,212,255,0.1);
@@ -118,117 +90,89 @@
     }
     #runBtn:disabled { opacity: 0.38; cursor: not-allowed; }
 
-    /* ── METRICS HUD ─────────────────────────────────────────── */
+    /* ── METRICS HUD (top-right) ── */
     #metricsHUD {
-      position: fixed;
-      top: 60px; right: 18px;
-      z-index: 400;
+      position: fixed; top: 60px; right: 18px; z-index: 400;
       background: var(--glass);
-      border: 1px solid rgba(0,212,255,0.22);
-      border-radius: 8px;
-      padding: 14px 18px;
-      min-width: 190px;
+      border: 1px solid rgba(0,212,255,0.22); border-radius: 8px;
+      padding: 14px 18px; min-width: 190px;
       backdrop-filter: blur(14px);
     }
 
     .mrow {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      padding: 5px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
     }
     .mrow:last-child { border-bottom: none; }
-
-    .mlbl {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 9px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.45);
-    }
-
-    .mval {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 20px;
-      font-weight: 600;
-      transition: color 1.2s;
-    }
-    .munit {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
-      color: rgba(255,255,255,0.35);
-      margin-left: 2px;
-    }
+    .mlbl { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+    .mval { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 600; transition: color 1.2s; }
+    .munit { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.35); margin-left: 2px; }
     .danger  { color: var(--orange); }
     .safe    { color: var(--green);  }
     .neutral { color: var(--cyan);   }
 
-    /* ── SYSTEM LOG ──────────────────────────────────────────── */
-    #sysLog {
-      position: fixed;
-      bottom: 18px; left: 18px;
-      z-index: 400;
-      width: 370px;
+    /* ── CHAT PANEL (left side) ── */
+    #chatPanel {
+      position: fixed; top: 60px; left: 18px; z-index: 400;
+      width: 340px; max-height: calc(100vh - 96px);
       background: var(--glass);
-      border: 1px solid rgba(0,212,255,0.18);
-      border-radius: 8px;
+      border: 1px solid rgba(0,212,255,0.18); border-radius: 8px;
       backdrop-filter: blur(14px);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      max-height: 195px;
+      display: flex; flex-direction: column; overflow: hidden;
     }
 
-    #logHdr {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 9px;
-      letter-spacing: 2px;
-      color: var(--cyan);
-      padding: 7px 12px;
-      border-bottom: 1px solid rgba(0,212,255,0.12);
-      text-transform: uppercase;
+    #chatHdr {
+      font-family: 'JetBrains Mono', monospace; font-size: 9px;
+      letter-spacing: 2px; color: var(--cyan); text-transform: uppercase;
+      padding: 7px 12px; border-bottom: 1px solid rgba(0,212,255,0.12);
+      flex-shrink: 0;
     }
 
-    #logBody {
-      flex: 1;
-      overflow-y: auto;
-      padding: 6px 12px 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
+    #chatBody {
+      flex: 1; overflow-y: auto;
+      padding: 6px 10px 10px;
+      display: flex; flex-direction: column; gap: 5px;
     }
-    #logBody::-webkit-scrollbar { width: 3px; }
-    #logBody::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.25); border-radius: 2px; }
+    #chatBody::-webkit-scrollbar { width: 3px; }
+    #chatBody::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.25); border-radius: 2px; }
 
-    .logline {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10.5px;
-      line-height: 1.6;
-      color: rgba(255,255,255,0.72);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .cmsg {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 6px; padding: 7px 9px;
+      animation: msgIn 0.22s ease-out;
+      flex-shrink: 0;
     }
-    .lt  { color: rgba(255,255,255,0.28); }
-    .ts  { color: rgba(180,180,180,0.6); }
-    .ta  { color: var(--cyan); }
-    .to  { color: var(--green); }
+    .cmsg.decision {
+      border-color: rgba(255,215,0,0.45);
+      background: rgba(255,215,0,0.05);
+    }
+    .cmsg.sysline {
+      border-color: rgba(0,212,255,0.12);
+      background: transparent;
+    }
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .cmsg-hdr {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 3px;
+    }
+    .cmsg-dot  { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .cmsg-name { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.5px; }
+    .cmsg-time { font-family: 'JetBrains Mono', monospace; font-size: 8px; color: rgba(255,255,255,0.28); margin-left: auto; }
+    .cmsg-text { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; line-height: 1.55; color: rgba(255,255,255,0.82); }
+    .cmsg.decision .cmsg-text { color: rgba(255,215,0,0.92); }
+    .cmsg.sysline  .cmsg-text { color: rgba(0,212,255,0.6); font-size: 9.5px; }
 
-    /* ── TRANSCRIPT PANEL ────────────────────────────────────── */
+    /* ── TRANSCRIPT PANEL (bottom-right) ── */
     #txPanel {
-      position: fixed;
-      bottom: 18px; right: 18px;
-      z-index: 400;
-      width: 330px;
-      max-height: 215px;
+      position: fixed; bottom: 18px; right: 18px; z-index: 400;
+      width: 330px; max-height: 215px;
       background: var(--glass);
-      border: 1px solid rgba(0,212,255,0.18);
-      border-radius: 8px;
+      border: 1px solid rgba(0,212,255,0.18); border-radius: 8px;
       backdrop-filter: blur(14px);
-      display: none;
-      flex-direction: column;
-      overflow: hidden;
+      display: none; flex-direction: column; overflow: hidden;
     }
     #txPanel.on {
       display: flex;
@@ -238,53 +182,36 @@
       0%   { border-color: rgba(0,212,255,0.18); box-shadow: none; }
       100% { border-color: rgba(0,212,255,0.85); box-shadow: 0 0 22px rgba(0,212,255,0.28); }
     }
-
     #txHdr {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 9px;
-      letter-spacing: 2px;
-      color: var(--cyan);
-      padding: 7px 12px;
-      border-bottom: 1px solid rgba(0,212,255,0.12);
-      display: flex;
-      align-items: center;
-      gap: 7px;
+      font-family: 'JetBrains Mono', monospace; font-size: 9px;
+      letter-spacing: 2px; color: var(--cyan);
+      padding: 7px 12px; border-bottom: 1px solid rgba(0,212,255,0.12);
+      display: flex; align-items: center; gap: 7px; flex-shrink: 0;
     }
     #txDot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--red);
-      animation: blink 0.75s infinite;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--red); animation: blink 0.75s infinite;
     }
     #txBody {
-      flex: 1;
-      overflow-y: auto;
+      flex: 1; overflow-y: auto;
       padding: 9px 12px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11.5px;
-      line-height: 1.65;
-      color: rgba(255,255,255,0.85);
-      word-break: break-word;
+      font-family: 'JetBrains Mono', monospace; font-size: 11.5px;
+      line-height: 1.65; color: rgba(255,255,255,0.85); word-break: break-word;
     }
     #txBody::-webkit-scrollbar { width: 3px; }
     #txBody::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.25); border-radius: 2px; }
 
-    /* ── AGENT ICONS ─────────────────────────────────────────── */
+    /* ── AGENT ICONS (3D-anchored floating) ── */
     .aicon {
-      position: fixed;
-      z-index: 300;
-      width: 40px; height: 40px;
-      border-radius: 50%;
+      position: fixed; z-index: 300;
+      width: 40px; height: 40px; border-radius: 50%;
       background: rgba(0,212,255,0.08);
       border: 1px solid rgba(0,212,255,0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 17px;
-      pointer-events: none;
-      transform: translate(-50%, -50%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; pointer-events: none;
+      transform: translate(-50%,-50%);
       opacity: 0.3;
-      transition: width 0.3s ease, height 0.3s ease, background 0.3s, box-shadow 0.3s, opacity 0.3s;
+      transition: width .3s, height .3s, background .3s, box-shadow .3s, opacity .3s;
     }
     .aicon.lit {
       width: 60px; height: 60px;
@@ -297,51 +224,30 @@
       50%     { box-shadow: 0 0 28px rgba(0,212,255,1),    0 0 60px rgba(0,212,255,0.6); }
     }
 
-    /* ── AGENT SPEECH BUBBLES ────────────────────────────────── */
+    /* ── AGENT SPEECH BUBBLES ── */
     .abubble {
-      position: fixed;
-      z-index: 301;
+      position: fixed; z-index: 301;
       display: none;
       background: rgba(10,14,26,0.87);
-      border: 2px solid var(--cyan);
-      border-radius: 8px;
-      padding: 11px 13px;
-      max-width: 280px;
-      min-width: 180px;
+      border: 2px solid var(--cyan); border-radius: 8px;
+      padding: 11px 13px; max-width: 280px; min-width: 180px;
       pointer-events: none;
     }
     .abubble.on { display: block; }
-    /* tail pointing toward icon (bottom-left) */
     .abubble::after {
-      content: '';
-      position: absolute;
-      bottom: -11px;
-      left: 18px;
+      content: ''; position: absolute;
+      bottom: -11px; left: 18px;
       border-left: 8px solid transparent;
       border-right: 8px solid transparent;
       border-top: 11px solid var(--cyan);
     }
-
     .bh {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--cyan);
-      margin-bottom: 5px;
+      font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600;
+      color: var(--cyan); margin-bottom: 5px;
     }
     .bm {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10.5px;
-      color: rgba(255,255,255,0.88);
-      line-height: 1.5;
-      word-break: break-word;
-    }
-    .bmod {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 8.5px;
-      color: rgba(255,255,255,0.28);
-      font-style: italic;
-      margin-top: 5px;
+      font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+      color: rgba(255,255,255,0.88); line-height: 1.5; word-break: break-word;
     }
   </style>
 </head>
@@ -363,15 +269,15 @@
 <div id="metricsHUD">
   <div class="mrow">
     <span class="mlbl">Crowd Risk</span>
-    <span><span id="mRisk"  class="mval danger">0.83</span></span>
+    <span><span id="mRisk" class="mval neutral">&#8212;</span></span>
   </div>
   <div class="mrow">
     <span class="mlbl">Evacuation</span>
-    <span><span id="mEvac"  class="mval danger">28</span><span class="munit">min</span></span>
+    <span><span id="mEvac" class="mval neutral">&#8212;</span><span class="munit" id="mEvacUnit"></span></span>
   </div>
   <div class="mrow">
     <span class="mlbl">Response</span>
-    <span><span id="mResp"  class="mval neutral">0:00</span></span>
+    <span><span id="mResp" class="mval neutral">&#8212;</span></span>
   </div>
   <div class="mrow">
     <span class="mlbl">Buses</span>
@@ -379,19 +285,19 @@
   </div>
 </div>
 
-<!-- SYSTEM LOG -->
-<div id="sysLog">
-  <div id="logHdr">&#9679; System Log</div>
-  <div id="logBody"></div>
+<!-- CHAT PANEL -->
+<div id="chatPanel">
+  <div id="chatHdr">&#9679; Agent Feed &#8212; Live</div>
+  <div id="chatBody"></div>
 </div>
 
 <!-- TRANSCRIPT PANEL -->
 <div id="txPanel">
-  <div id="txHdr"><div id="txDot"></div>LIVE TRANSCRIPT — EMERGENCY CALL</div>
+  <div id="txHdr"><div id="txDot"></div>LIVE TRANSCRIPT &#8212; EMERGENCY CALL</div>
   <div id="txBody"></div>
 </div>
 
-<!-- AGENT ICONS -->
+<!-- AGENT ICONS (positioned each frame via wgs84ToWindowCoordinates) -->
 <div id="ai-perception"     class="aicon">&#128065;</div>
 <div id="ai-forecast"       class="aicon">&#128302;</div>
 <div id="ai-mobility"       class="aicon">&#128678;</div>
@@ -400,172 +306,154 @@
 <div id="ai-communications" class="aicon">&#128226;</div>
 <div id="ai-orchestrator"   class="aicon">&#129504;</div>
 
-<!-- AGENT BUBBLES -->
+<!-- AGENT SPEECH BUBBLES -->
 <div id="ab-perception" class="abubble">
   <div class="bh">&#128065; Perception</div>
   <div id="bm-perception" class="bm"></div>
-  <div id="bd-perception" class="bmod"></div>
 </div>
 <div id="ab-forecast" class="abubble">
   <div class="bh">&#128302; Forecast</div>
   <div id="bm-forecast" class="bm"></div>
-  <div id="bd-forecast" class="bmod"></div>
 </div>
 <div id="ab-mobility" class="abubble">
   <div class="bh">&#128678; Mobility</div>
   <div id="bm-mobility" class="bm"></div>
-  <div id="bd-mobility" class="bmod"></div>
 </div>
 <div id="ab-transit" class="abubble">
   <div class="bh">&#128652; Transit</div>
   <div id="bm-transit" class="bm"></div>
-  <div id="bd-transit" class="bmod"></div>
 </div>
 <div id="ab-safety" class="abubble">
   <div class="bh">&#128737; Safety</div>
   <div id="bm-safety" class="bm"></div>
-  <div id="bd-safety" class="bmod"></div>
 </div>
 <div id="ab-communications" class="abubble">
   <div class="bh">&#128226; Communications</div>
   <div id="bm-communications" class="bm"></div>
-  <div id="bd-communications" class="bmod"></div>
 </div>
 <div id="ab-orchestrator" class="abubble">
   <div class="bh">&#129504; Orchestrator</div>
   <div id="bm-orchestrator" class="bm"></div>
-  <div id="bd-orchestrator" class="bmod"></div>
 </div>
 
 <script>
 'use strict';
 
-/* ── AGENT CONFIG ────────────────────────────────────────────────────────── */
+// ═══ AGENT REGISTRY (colors, emojis, names, 3D anchor positions) ═══
 const AGENTS = {
-  perception:     { lng:9.12480, lat:45.47880, alt:5,   label:'Perception',     freq:440 },
-  forecast:       { lng:9.14090, lat:45.48560, alt:5,   label:'Forecast',       freq:523 },
-  mobility:       { lng:9.13000, lat:45.47700, alt:5,   label:'Mobility',       freq:587 },
-  transit:        { lng:9.11500, lat:45.49100, alt:5,   label:'Transit',        freq:659 },
-  safety:         { lng:9.12430, lat:45.48200, alt:5,   label:'Safety',         freq:698 },
-  communications: { lng:9.12400, lat:45.47810, alt:5,   label:'Communications', freq:783 },
-  orchestrator:   { lng:9.12400, lat:45.47810, alt:250, label:'Orchestrator',   freq:880 }
+  perception:     { lon: 9.12480, lat: 45.47880, alt: 5,   color: '#FF9900', name: 'Perception',     freq: 440 },
+  forecast:       { lon: 9.14090, lat: 45.48560, alt: 5,   color: '#FF6600', name: 'Forecast',       freq: 523 },
+  mobility:       { lon: 9.13000, lat: 45.47700, alt: 5,   color: '#4CAF50', name: 'Mobility',       freq: 587 },
+  transit:        { lon: 9.11500, lat: 45.49100, alt: 5,   color: '#2196F3', name: 'Transit',        freq: 659 },
+  safety:         { lon: 9.12430, lat: 45.48200, alt: 5,   color: '#F44336', name: 'Safety',         freq: 698 },
+  communications: { lon: 9.12400, lat: 45.47810, alt: 5,   color: '#9C27B0', name: 'Communications', freq: 783 },
+  orchestrator:   { lon: 9.12400, lat: 45.47810, alt: 250, color: '#FFD700', name: 'Orchestrator',   freq: 880 }
 };
 
+// Pre-compute ECEF Cartesian3 for each agent's 3D anchor
 const agentPos = {};
 Object.entries(AGENTS).forEach(([k, a]) => {
-  agentPos[k] = Cesium.Cartesian3.fromDegrees(a.lng, a.lat, a.alt);
+  agentPos[k] = Cesium.Cartesian3.fromDegrees(a.lon, a.lat, a.alt);
 });
 
-/* ── STATE ───────────────────────────────────────────────────────────────── */
-const SAN_SIRO = { lng:9.1240, lat:45.4781 };
-let demoRunning   = false;
-let demoOverride  = false;
-let demoTimers    = [];
-let metroFailed   = false;
-let respTimer     = null;
-let respSec       = 0;
-let audioCtx      = null;
-let pedestrians   = [];
-let lastPedTick   = 0;
-let ambColl       = null;
-let busCinema     = [];
-let ambState      = [];
-let busAnimIv     = null;
-let ambAnimIv     = null;
-let idleFlyTimer  = null;
+// Named map coordinates
+const GATE4      = { lon: 9.12480, lat: 45.47880 };
+const BUS_DEPOT  = { lon: 9.11500, lat: 45.49100 };
+const NORTH_GATE = { lon: 9.12430, lat: 45.48200 };
 
-/* ── WEB AUDIO ───────────────────────────────────────────────────────────── */
-function getACtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
+// ═══ DEMO STATE ═══
+let scenario       = null;
+let tickIntervalId = null;
+let demoStartTime  = null;
+let firedSet       = new Set();
+let metroFailed    = false;
+let audioCtx       = null;
+let idleFlyTimer   = null;
 
-function beep(freq, dur = 0.2) {
-  try {
-    const ctx  = getACtx();
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    const t = ctx.currentTime;
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.28, t + 0.01);
-    gain.gain.linearRampToValueAtTime(0, t + dur);
-    osc.start(t);
-    osc.stop(t + dur + 0.05);
-  } catch(_) {}
-}
+// Cesium primitive handles (allocated lazily, reused across runs)
+let pedColl  = null;
+let busColl  = null;
+let ambColl  = null;
+let pedestrians = [];
+let busState    = [];
+let ambState    = [];
+let busAnimIv   = null;
+let ambAnimIv   = null;
+let lastPedTick = 0;
 
-/* ── CESIUM VIEWER ───────────────────────────────────────────────────────── */
+// Entity / billboard handles that must be cleaned between runs
+let corridorEntities = [];
+let congestionEntity = null;
+let alertBillColls   = [];
+let alertIntervals   = [];
+
+// ═══ CESIUM SETUP ═══
 const viewer = new Cesium.Viewer('cesiumContainer', {
-  timeline:               false,
-  animation:              false,
-  baseLayerPicker:        false,
-  geocoder:               false,
-  homeButton:             false,
-  sceneModePicker:        false,
-  navigationHelpButton:   false,
-  fullscreenButton:       false,
-  infoBox:                false,
-  selectionIndicator:     false,
-  terrainProvider:        new Cesium.EllipsoidTerrainProvider()
+  timeline:             false,
+  animation:            false,
+  baseLayerPicker:      false,
+  geocoder:             false,
+  homeButton:           false,
+  sceneModePicker:      false,
+  navigationHelpButton: false,
+  fullscreenButton:     false,
+  infoBox:              false,
+  selectionIndicator:   false,
+  terrainProvider:      new Cesium.EllipsoidTerrainProvider()
 });
 
 viewer.imageryLayers.removeAll();
-viewer.scene.globe.show              = false;
-viewer.scene.backgroundColor         = new Cesium.Color(0.039, 0.055, 0.102, 1.0);
-viewer.scene.skyAtmosphere.show      = false;
+viewer.scene.globe.show             = false;
+viewer.scene.backgroundColor        = new Cesium.Color(0.039, 0.055, 0.102, 1.0);
+viewer.scene.skyAtmosphere.show     = false;
 viewer.scene.screenSpaceCameraController.enableInputs = false;
 
-/* Load Google Photorealistic 3D Tiles */
+Cesium.Ion.defaultAccessToken = '__CESIUM_ION_TOKEN__';
+
+// Google Photorealistic 3D Tiles — KEY as positional string (Cesium 1.114)
 (async () => {
   try {
-    const ts = await Cesium.createGooglePhotorealistic3DTileset({
-      key: '__GOOGLE_MAPS_API_KEY__'
-    });
+    const ts = await Cesium.createGooglePhotorealistic3DTileset('__GOOGLE_MAPS_API_KEY__');
     viewer.scene.primitives.add(ts);
-    sysLog('SYS', 'Google Photorealistic 3D Tiles loaded');
-  } catch(e) {
-    sysLog('SYS', 'Tileset: ' + (e.message || 'load error'));
+    chatSys('Google 3D Tiles loaded');
+  } catch (e) {
+    chatSys('3D Tiles: ' + (e.message || 'load error'));
   }
 })();
 
-/* Initial camera — low and close on San Siro */
+// Initial camera — wide aerial over San Siro
 viewer.camera.setView({
-  destination: Cesium.Cartesian3.fromDegrees(9.1235, 45.4770, 450),
+  destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4781, 850),
   orientation: {
-    heading: Cesium.Math.toRadians(30),
-    pitch:   Cesium.Math.toRadians(-25),
+    heading: Cesium.Math.toRadians(35),
+    pitch:   Cesium.Math.toRadians(-42),
     roll:    0.0
   }
 });
 
-/* Slow orbital flyTo after 4 s */
+// Idle drift before demo starts
 idleFlyTimer = setTimeout(() => {
   viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4775, 550),
+    destination: Cesium.Cartesian3.fromDegrees(9.1240, 45.4775, 900),
     orientation: {
-      heading: Cesium.Math.toRadians(60),
-      pitch:   Cesium.Math.toRadians(-30),
+      heading: Cesium.Math.toRadians(35),
+      pitch:   Cesium.Math.toRadians(-45),
       roll:    0.0
     },
     duration: 4
   });
-}, 4000);
+}, 3000);
 
-/* ── METRO M5 LINE ───────────────────────────────────────────────────────── */
-const metroPositions = Cesium.Cartesian3.fromDegreesArray([
-  9.1238, 45.4783,
-  9.1340, 45.4815,
-  9.1409, 45.4856,
-  9.1510, 45.4905
+// ═══ METRO M5 LINE (always visible, turns red on METRO_FAILURE) ═══
+const M5_POS = Cesium.Cartesian3.fromDegreesArray([
+  9.12380, 45.47830,
+  9.13250, 45.48200,
+  9.14090, 45.48560
 ]);
 
-const metroEntity = viewer.entities.add({
+viewer.entities.add({
   polyline: {
-    positions: metroPositions,
+    positions: M5_POS,
     width: new Cesium.CallbackProperty(() => metroFailed ? 6 : 4, false),
     material: new Cesium.ColorMaterialProperty(
       new Cesium.CallbackProperty(() => {
@@ -578,11 +466,11 @@ const metroEntity = viewer.entities.add({
   }
 });
 
-const metroLabel = viewer.entities.add({
-  position: Cesium.Cartesian3.fromDegrees(9.1350, 45.4838, 60),
+viewer.entities.add({
+  position: Cesium.Cartesian3.fromDegrees(9.1335, 45.4820, 60),
   label: {
-    text: new Cesium.CallbackProperty(() => metroFailed ? 'M5 SUSPENDED' : 'M5 LINE', false),
-    font: '14px "Space Grotesk", sans-serif',
+    text: new Cesium.CallbackProperty(() => metroFailed ? 'M5 SUSPENDED' : 'M5', false),
+    font: '13px "Space Grotesk", sans-serif',
     fillColor: new Cesium.CallbackProperty(
       () => metroFailed
         ? Cesium.Color.fromCssColorString('#ff0033')
@@ -592,305 +480,176 @@ const metroLabel = viewer.entities.add({
     outlineColor: Cesium.Color.BLACK,
     outlineWidth: 2,
     style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-    pixelOffset: new Cesium.Cartesian2(0, -24),
-    show: true
+    disableDepthTestDistance: Number.POSITIVE_INFINITY
   }
 });
 
-/* ── EVACUATION CORRIDOR ─────────────────────────────────────────────────── */
-const evacPositions = Cesium.Cartesian3.fromDegreesArray([
-  9.1240, 45.4781,
-  9.1241, 45.4800,
-  9.1243, 45.4825,
-  9.1245, 45.4850
-]);
-
-const evacGlow = viewer.entities.add({
-  polyline: {
-    positions: evacPositions,
-    width: 20,
-    material: new Cesium.ColorMaterialProperty(
-      Cesium.Color.fromCssColorString('#39ff1466')
-    ),
-    show: false,
-    clampToGround: true
-  }
-});
-
-const evacLine = viewer.entities.add({
-  polyline: {
-    positions: evacPositions,
-    width: 10,
-    material: new Cesium.ColorMaterialProperty(
-      Cesium.Color.fromCssColorString('#39ff14')
-    ),
-    show: false,
-    clampToGround: true
-  }
-});
-
-function openCorridor() {
-  evacLine.polyline.show = true;
-  evacGlow.polyline.show = true;
-  sysLog('AGENT', 'Safety: evacuation corridor open — Via L. da Vinci');
-}
-
-/* ── POINT PRIMITIVE COLLECTIONS ────────────────────────────────────────── */
-const pedColl = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
-const busColl = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
-
-/* Seed 60 initial pedestrians slowly radiating from San Siro */
-function seedPedestrians() {
-  pedColl.removeAll();
-  pedestrians = [];
-  for (let i = 0; i < 60; i++) {
-    const ang    = Math.random() * Math.PI * 2;
-    const rad    = 0.0006 + Math.random() * 0.0025;
-    const lng    = SAN_SIRO.lng + Math.cos(ang) * rad;
-    const lat    = SAN_SIRO.lat + Math.sin(ang) * rad;
-    const speed  = 0.000003 + Math.random() * 0.000004;
-    const pt = pedColl.add({
-      position: Cesium.Cartesian3.fromDegrees(lng, lat, 5),
-      color:    Cesium.Color.fromCssColorString('#ff6b35'),
-      pixelSize: 6
-    });
-    pedestrians.push({ pt, lng, lat, dlng: Math.cos(ang)*speed, dlat: Math.sin(ang)*speed });
-  }
-}
-seedPedestrians();
-
-function tickPedestrians(ts) {
-  if (ts - lastPedTick < 120) return;
-  lastPedTick = ts;
-  pedestrians.forEach(p => {
-    p.lng += p.dlng + (Math.random()-0.5)*0.0000015;
-    p.lat += p.dlat + (Math.random()-0.5)*0.0000015;
-    p.pt.position = Cesium.Cartesian3.fromDegrees(p.lng, p.lat, 5);
-  });
-}
-
-function ingestPedestrians(persons, highDensity) {
-  pedColl.removeAll();
-  pedestrians = [];
-  persons.forEach(p => {
-    const red = highDensity && Math.random() > 0.42;
-    pedColl.add({
-      position: Cesium.Cartesian3.fromDegrees(
-        p.x != null ? p.x : SAN_SIRO.lng + (Math.random()-0.5)*0.004,
-        p.y != null ? p.y : SAN_SIRO.lat + (Math.random()-0.5)*0.004,
-        5
-      ),
-      color:     Cesium.Color.fromCssColorString(red ? '#ff0033' : '#ff6b35'),
-      pixelSize: red ? 8 : 6
-    });
-  });
-}
-
-function ingestBuses(vehicles) {
-  busColl.removeAll();
-  vehicles.forEach(v => {
-    busColl.add({
-      position: Cesium.Cartesian3.fromDegrees(
-        v.x != null ? v.x : SAN_SIRO.lng + (Math.random()-0.5)*0.012,
-        v.y != null ? v.y : SAN_SIRO.lat + (Math.random()-0.5)*0.012,
-        5
-      ),
-      color:    Cesium.Color.fromCssColorString('#00d4ff'),
-      pixelSize: 10
-    });
-  });
-}
-
-/* ── CESIUM POST-RENDER — ICON POSITIONING ───────────────────────────────── */
+// ═══ POST-RENDER: pedestrian animation + icon 3D→2D projection ═══
 viewer.scene.postRender.addEventListener(() => {
-  tickPedestrians(performance.now());
+  const now = performance.now();
 
+  // Animate pedestrians at ~10 Hz
+  if (pedColl && now - lastPedTick > 100) {
+    lastPedTick = now;
+    pedestrians.forEach(p => {
+      p.lng += p.dlng + (Math.random() - 0.5) * 0.0000007;
+      p.lat += p.dlat + (Math.random() - 0.5) * 0.0000007;
+      p.pt.position = Cesium.Cartesian3.fromDegrees(p.lng, p.lat, 5);
+    });
+  }
+
+  // Position agent icons using Cesium 1.114: wgs84ToWindowCoordinates
   Object.keys(AGENTS).forEach(k => {
-    const pos = agentPos[k];
-    const wp  = Cesium.SceneTransforms.worldToWindowCoordinates(viewer.scene, pos);
-
+    const wp     = Cesium.SceneTransforms.wgs84ToWindowCoordinates(viewer.scene, agentPos[k]);
     const icon   = document.getElementById('ai-' + k);
     const bubble = document.getElementById('ab-' + k);
+    const inView = wp && wp.x >= 0 && wp.y >= 0 && wp.x <= window.innerWidth && wp.y <= window.innerHeight;
 
-    if (!wp || wp.x < 0 || wp.y < 0 || wp.x > window.innerWidth || wp.y > window.innerHeight) {
+    if (!inView) {
       if (icon)   icon.style.display   = 'none';
       if (bubble) bubble.style.display = 'none';
       return;
     }
-
     if (icon) {
       icon.style.display = 'flex';
       icon.style.left    = wp.x + 'px';
       icon.style.top     = wp.y + 'px';
     }
-
     if (bubble && bubble.classList.contains('on')) {
       bubble.style.display = 'block';
-      const bx = Math.min(wp.x + 28, window.innerWidth  - 295);
-      const by = Math.max(wp.y - 135, 68);
-      bubble.style.left = bx + 'px';
-      bubble.style.top  = by + 'px';
+      bubble.style.left = Math.min(wp.x + 28, window.innerWidth  - 295) + 'px';
+      bubble.style.top  = Math.max(wp.y - 135, 68) + 'px';
     }
   });
 });
 
-/* ── WEBSOCKET ───────────────────────────────────────────────────────────── */
-let ws   = null;
-let wsRe = null;
-
-function connectWS() {
-  const url = 'ws://' + location.hostname + '/ws';
-  ws = new WebSocket(url);
-
-  ws.onopen = () => sysLog('SYS', 'WebSocket connected to ' + location.hostname);
-
-  ws.onmessage = evt => {
-    let msg;
-    try { msg = JSON.parse(evt.data); } catch { return; }
-    dispatch(msg);
-  };
-
-  ws.onclose = () => {
-    sysLog('SYS', 'WebSocket closed — reconnecting in 3s');
-    if (wsRe) clearTimeout(wsRe);
-    wsRe = setTimeout(connectWS, 3000);
-  };
-
-  ws.onerror = () => ws.close();
+// ═══ WEB AUDIO ═══
+function getACtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
 }
 
-connectWS();
-
-/* ── MESSAGE DISPATCH ────────────────────────────────────────────────────── */
-function dispatch(msg) {
-  if (demoOverride) return;
-  const t = msg.type || msg.event;
-  switch (t) {
-    case 'sim_state':    onSimState(msg);    break;
-    case 'agent_thinking': onAgentMsg(msg);  break;
-    case 'agent_event':  onAgentMsg(msg);    break;
-    case 'metric_update': onMetrics(msg);    break;
-    case 'metro_failure': onMetroFail(msg);  break;
-    case 'corridor_open': openCorridor();    break;
-    case 'transcript':   onTranscript(msg);  break;
-    case 'crisis_contained': onContained();  break;
-  }
+function beep(freq, dur) {
+  dur = dur || 0.18;
+  try {
+    const ctx  = getACtx();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    const t = ctx.currentTime;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.22, t + 0.01);
+    gain.gain.linearRampToValueAtTime(0, t + dur);
+    osc.start(t);
+    osc.stop(t + dur + 0.05);
+  } catch (_) {}
 }
 
-function onSimState(msg) {
-  const d = msg.data || msg;
-  const ppl = d.persons || d.pedestrians || [];
-  const veh = (d.vehicles || []).filter(v => v.type === 'bus' || v.vtype === 'bus');
-  if (ppl.length) ingestPedestrians(ppl, ppl.length > 48);
-  if (veh.length) ingestBuses(veh);
+// ═══ CANVAS HELPERS ═══
+function makeRingCanvas(radius, strokeColor) {
+  const size = radius * 2 + 8;
+  const c    = document.createElement('canvas');
+  c.width    = c.height = size;
+  const ctx  = c.getContext('2d');
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth   = 4;
+  ctx.stroke();
+  return c;
 }
 
-function onAgentMsg(msg) {
-  const key = (msg.agent || '').toLowerCase();
-  if (!AGENTS[key]) return;
-
-  const text  = msg.message || msg.output || msg.thought || '…';
-  const model = msg.model   || '';
-
-  beep(AGENTS[key].freq);
-
-  const icon   = document.getElementById('ai-' + key);
-  const bubble = document.getElementById('ab-' + key);
-  const msgEl  = document.getElementById('bm-' + key);
-  const modEl  = document.getElementById('bd-' + key);
-
-  if (icon)   icon.classList.add('lit');
-  if (bubble) bubble.classList.add('on');
-  if (modEl)  modEl.textContent = model;
-  if (msgEl)  typewrite(msgEl, text.substring(0, 220), 30);
-
-  sysLog('AGENT', AGENTS[key].label + ': ' + text.substring(0, 90));
-
-  if (key === 'communications') startCommsFlow();
-
-  setTimeout(() => { if (icon) icon.classList.remove('lit'); }, 9000);
+// ═══ CHAT PANEL ENGINE ═══
+function chatSys(msg) {
+  const body = document.getElementById('chatBody');
+  const now  = new Date();
+  const ts   = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+  const div  = document.createElement('div');
+  div.className = 'cmsg sysline';
+  div.innerHTML =
+    '<div class="cmsg-hdr">' +
+    '<span class="cmsg-dot" style="background:rgba(0,212,255,0.5)"></span>' +
+    '<span class="cmsg-name" style="color:rgba(0,212,255,0.7)">SYS</span>' +
+    '<span class="cmsg-time">' + ts + '</span>' +
+    '</div>' +
+    '<div class="cmsg-text">' + esc(msg) + '</div>';
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
 }
 
-function onMetrics(msg) {
-  if (msg.risk       != null) setVal('mRisk',  msg.risk, msg.risk  > 0.5 ? 'danger' : 'safe', true);
-  if (msg.evacuation != null) setVal('mEvac',  msg.evacuation, msg.evacuation > 20 ? 'danger' : 'safe', false);
-  if (msg.buses      != null) countUp('mBuses', msg.buses);
+function appendAgentMsg(key, agent, text, decision, elapsedSec) {
+  const body = document.getElementById('chatBody');
+  const div  = document.createElement('div');
+  div.className = 'cmsg' + (decision ? ' decision' : '');
+  div.innerHTML =
+    '<div class="cmsg-hdr">' +
+    '<span class="cmsg-dot" style="background:' + agent.color + '"></span>' +
+    '<span class="cmsg-name" style="color:' + agent.color + '">' + esc(agent.name) + '</span>' +
+    '<span class="cmsg-time">T+' + elapsedSec.toFixed(1) + 's</span>' +
+    '</div>' +
+    '<div class="cmsg-text">' + esc(text) + '</div>';
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
 }
 
-function onMetroFail(msg) {
-  metroFailed = true;
-  beep(220, 0.5);
-  sysLog('SYS', 'ALERT: M5 Metro suspended — switching to bus contingency');
+// ═══ ICON / BUBBLE HELPERS ═══
+function lightIcon(key) {
+  const el = document.getElementById('ai-' + key);
+  if (!el) return;
+  el.style.opacity = '1';
+  el.classList.add('lit');
+  setTimeout(() => { el.style.opacity = '0.3'; el.classList.remove('lit'); }, 8500);
 }
 
-function onTranscript(msg) {
-  const panel = document.getElementById('txPanel');
-  panel.classList.add('on');
-  const body  = document.getElementById('txBody');
-  const words = (msg.words || msg.transcript || msg.text || '').split(/\s+/);
-  let i = 0;
-  const iv = setInterval(() => {
-    if (i >= words.length) { clearInterval(iv); return; }
-    body.textContent += (i > 0 ? ' ' : '') + words[i++];
-    body.scrollTop = body.scrollHeight;
-  }, 200);
-}
-
-function onContained() {
-  setStatus('resolved');
-  sysLog('ORCH', 'Crisis contained — OlympusOS intervention successful');
-  setVal('mRisk', '0.34', 'safe', false);
-  setVal('mEvac', '18',   'safe', false);
-  if (respTimer) { clearInterval(respTimer); respTimer = null; }
+function showBubble(key, text) {
+  const b   = document.getElementById('ab-' + key);
+  const msg = document.getElementById('bm-' + key);
+  if (b)   { b.style.opacity = '1'; b.classList.add('on'); }
+  if (msg) typewrite(msg, text.substring(0, 200), 26);
   setTimeout(() => {
-    demoRunning = false;
-    const btn = document.getElementById('runBtn');
-    btn.textContent = '✓ RUN AGAIN';
-    btn.disabled = false;
-  }, 3000);
+    if (!b) return;
+    b.style.transition = 'opacity 0.4s';
+    b.style.opacity    = '0';
+    setTimeout(() => { b.classList.remove('on'); b.style.opacity = ''; b.style.transition = ''; }, 420);
+  }, 9000);
 }
 
-/* ── COMMS FLOW ──────────────────────────────────────────────────────────── */
-function startCommsFlow() {
-  const panel = document.getElementById('txPanel');
-  panel.classList.add('on');
-  // const audio = new Audio('/audio/emergency_call.wav'); // no voice — cinematic bell only
-  // audio.play().catch(() => {});
-  sysLog('AGENT', 'Communications: broadcast initiated');
+function hideAllBubbles() {
+  Object.keys(AGENTS).forEach(k => {
+    const b = document.getElementById('ab-' + k);
+    if (b) { b.classList.remove('on'); b.style.opacity = ''; b.style.transition = ''; }
+  });
 }
 
-/* ── RESPONSE TIMER ──────────────────────────────────────────────────────── */
-function startRespTimer() {
-  respSec = 0;
-  if (respTimer) clearInterval(respTimer);
-  respTimer = setInterval(() => {
-    respSec++;
-    const m = Math.floor(respSec / 60);
-    const s = respSec % 60;
-    const el = document.getElementById('mResp');
-    if (el) el.textContent = m + ':' + String(s).padStart(2,'0');
-  }, 1000);
+function dimAllIcons() {
+  Object.keys(AGENTS).forEach(k => {
+    const el = document.getElementById('ai-' + k);
+    if (el) { el.style.opacity = '0.3'; el.classList.remove('lit'); }
+  });
 }
 
-/* ── STATUS ──────────────────────────────────────────────────────────────── */
+// ═══ STATUS ═══
 function setStatus(s) {
   const dot = document.getElementById('statusDot');
   const txt = document.getElementById('statusTxt');
   dot.className = '';
   if (s === 'active')   { dot.classList.add('active');   txt.textContent = 'ACTIVE'; }
   else if (s === 'resolved') { dot.classList.add('resolved'); txt.textContent = 'RESOLVED'; }
-  else                   { txt.textContent = 'STANDBY'; }
+  else                  { txt.textContent = 'STANDBY'; }
 }
 
-/* ── METRIC HELPERS ──────────────────────────────────────────────────────── */
-function setVal(id, val, cls, isFloat) {
+// ═══ METRIC HELPERS ═══
+function setVal(id, val, cls) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.textContent = isFloat ? parseFloat(val).toFixed(2) : val;
-  el.className = 'mval ' + (cls || 'neutral');
+  el.textContent = val;
+  el.className   = 'mval ' + (cls || 'neutral');
 }
 
-function countUp(id, target) {
+function countUp(id, target, cls) {
   const el = document.getElementById(id);
   if (!el) return;
   const from  = parseFloat(el.textContent) || 0;
@@ -902,30 +661,10 @@ function countUp(id, target) {
     el.textContent = Math.round(cur);
     if (step >= steps) { el.textContent = target; clearInterval(iv); }
   }, 50);
-  el.className = 'mval neutral';
+  if (cls) el.className = 'mval ' + cls;
 }
 
-/* ── SYSTEM LOG ──────────────────────────────────────────────────────────── */
-function sysLog(tag, msg) {
-  const body = document.getElementById('logBody');
-  const now  = new Date();
-  const ts   = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
-  const tagCls = tag === 'SYS' ? 'ts' : tag === 'ORCH' ? 'to' : 'ta';
-  const div  = document.createElement('div');
-  div.className = 'logline';
-  div.innerHTML =
-    '<span class="lt">' + ts + '</span> ' +
-    '<span class="' + tagCls + '">[' + tag + ']</span> ' +
-    esc(msg);
-  body.appendChild(div);
-  while (body.children.length > 8) body.removeChild(body.firstChild);
-  body.scrollTop = body.scrollHeight;
-}
-
-function pad(n) { return String(n).padStart(2,'0'); }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-/* ── TYPEWRITER ──────────────────────────────────────────────────────────── */
+// ═══ TYPEWRITER ═══
 function typewrite(el, text, ms) {
   el.textContent = '';
   let i = 0;
@@ -935,356 +674,414 @@ function typewrite(el, text, ms) {
   }, ms);
 }
 
-/* ── RUN DEMO BUTTON ─────────────────────────────────────────────────────── */
-document.getElementById('runBtn').addEventListener('click', () => {
-  if (demoRunning) return;
-  demoRunning = true;
-  getACtx();
-  if (idleFlyTimer) { clearTimeout(idleFlyTimer); idleFlyTimer = null; }
-  const btn = document.getElementById('runBtn');
-  btn.textContent = '● RUNNING';
-  btn.disabled = true;
-  startDemo();
-});
+function pad(n)  { return String(n).padStart(2, '0'); }
+function esc(s)  { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
-/* ── INIT LOGS ───────────────────────────────────────────────────────────── */
-sysLog('SYS', 'OlympusOS v1.0 — Crisis Intelligence Platform');
-sysLog('SYS', 'San Siro Stadium, Milan — 75,000 capacity event');
-sysLog('SYS', 'Connecting WebSocket to crisis management backend…');
+// ═══ CESIUM ACTION HANDLERS ═══
 
-/* ── CINEMATIC HELPERS ───────────────────────────────────────────────────── */
-function at(ms, fn) { const id = setTimeout(fn, ms); demoTimers.push(id); return id; }
-
-function camFly(lng, lat, alt, heading, pitch, duration) {
+function handleCameraFly(ev) {
   viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(lng, lat, alt),
-    orientation: { heading: Cesium.Math.toRadians(heading), pitch: Cesium.Math.toRadians(pitch), roll: 0 },
-    duration: duration
+    destination: Cesium.Cartesian3.fromDegrees(ev.lon, ev.lat, ev.alt),
+    orientation: {
+      heading: Cesium.Math.toRadians(ev.heading || 0),
+      pitch:   Cesium.Math.toRadians(ev.pitch   || -45),
+      roll:    0.0
+    },
+    duration: ev.duration || 2.5
   });
 }
 
-function dimAllIcons() {
-  Object.keys(AGENTS).forEach(k => {
-    const el = document.getElementById('ai-' + k);
-    if (el) { el.style.opacity = '0.3'; el.classList.remove('lit'); }
+function handleCameraAlert(ev) {
+  const pos  = Cesium.Cartesian3.fromDegrees(ev.lon, ev.lat, 10);
+  const coll = viewer.scene.primitives.add(new Cesium.BillboardCollection());
+  const img  = makeRingCanvas(28, '#ff2952');
+  const bill = coll.add({
+    position: pos,
+    image:    img,
+    disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    color:    Cesium.Color.fromCssColorString('#ff2952')
   });
+  // Pulse at 1.5 Hz
+  const iv = setInterval(() => {
+    const alpha = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(Date.now() * Math.PI / 333));
+    bill.color  = new Cesium.Color(1, 0.16, 0.32, alpha);
+  }, 33);
+  alertBillColls.push(coll);
+  alertIntervals.push(iv);
 }
 
-function activateIcon(key) {
-  dimAllIcons();
-  const el = document.getElementById('ai-' + key);
-  if (el) { el.style.opacity = '1'; el.classList.add('lit'); }
-}
-
-function deactivateIcon(key) {
-  const el = document.getElementById('ai-' + key);
-  if (el) { el.style.opacity = '0.3'; el.classList.remove('lit'); }
-}
-
-function hideAllBubbles() {
-  Object.keys(AGENTS).forEach(k => {
-    const b = document.getElementById('ab-' + k);
-    if (b) { b.classList.remove('on'); b.style.opacity = ''; }
-  });
-}
-
-function showBubble(key, text) {
-  hideAllBubbles();
-  const b   = document.getElementById('ab-' + key);
-  const msg = document.getElementById('bm-' + key);
-  if (b)   { b.style.opacity = '1'; b.classList.add('on'); }
-  if (msg) typewrite(msg, text, 28);
-}
-
-function hideBubble(key) {
-  const b = document.getElementById('ab-' + key);
-  if (!b || !b.classList.contains('on')) return;
-  b.style.transition = 'opacity 0.3s';
-  b.style.opacity = '0';
-  setTimeout(() => { b.classList.remove('on'); b.style.opacity = ''; b.style.transition = ''; }, 310);
-}
-
-function spawnPedestrians80() {
+function initPedestrians() {
+  if (!pedColl) pedColl = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
   pedColl.removeAll();
   pedestrians = [];
   for (let i = 0; i < 80; i++) {
     const ang   = Math.random() * Math.PI * 2;
-    const rad   = 0.0004 + Math.random() * 0.002;
-    const lng   = SAN_SIRO.lng + Math.cos(ang) * rad;
-    const lat   = SAN_SIRO.lat + Math.sin(ang) * rad;
-    const speed = 0.000003 + Math.random() * 0.000005;
-    const pt = pedColl.add({
+    const rad   = 0.0003 + Math.random() * 0.0015;
+    const lng   = GATE4.lon + Math.cos(ang) * rad * 1.8;
+    const lat   = GATE4.lat + Math.sin(ang) * rad;
+    const speed = 0.000003 + Math.random() * 0.000004;
+    const pt    = pedColl.add({
       position: Cesium.Cartesian3.fromDegrees(lng, lat, 5),
-      color:    Cesium.Color.fromCssColorString('#ff6b35'),
-      pixelSize: 6
+      color:    Cesium.Color.fromCssColorString('#ff7a3d'),
+      pixelSize: 12,
+      disableDepthTestDistance: Number.POSITIVE_INFINITY
     });
-    pedestrians.push({ pt, lng, lat, dlng: Math.cos(ang)*speed, dlat: Math.sin(ang)*speed, red: false, green: false });
+    pedestrians.push({
+      pt, lng, lat,
+      dlng: Math.cos(ang) * speed * 0.3,
+      dlat: Math.sin(ang) * speed * 0.3,
+      redirected: false
+    });
   }
 }
 
-function reddenPedsNearGate4() {
-  let n = 0;
+function handleCrowdDensityIncrease(ev) {
+  const intensity = ev.intensity || 0.5;
+  // Color lerp: #ff7a3d (orange) → #ff2952 (red) based on intensity
+  const g = 0.478 - (0.478 - 0.161) * intensity;
+  const b = 0.239 + (0.322 - 0.239) * intensity;
+  const col = new Cesium.Color(1.0, g, b, 1.0);
+
   pedestrians.forEach(p => {
-    if (n >= 35) return;
-    const dx = p.lng - 9.1240, dy = p.lat - 45.4775;
-    if (Math.sqrt(dx*dx + dy*dy) < 0.003) {
-      p.pt.color     = Cesium.Color.fromCssColorString('#ff0033');
-      p.pt.pixelSize = 9;
-      p.red  = true;
-      p.dlng = (Math.random()-0.5)*0.0000004;
-      p.dlat = (Math.random()-0.5)*0.0000004;
-      n++;
+    if (!p.redirected) {
+      p.pt.color    = col;
+      p.pt.pixelSize = 10 + Math.round(intensity * 4);
+      // Slow to near-standstill — trapped crowd
+      p.dlng = (Math.random() - 0.5) * 0.0000005;
+      p.dlat = (Math.random() - 0.5) * 0.0000005;
+    }
+  });
+
+  // Spawn red dome at gate when density is high
+  if (intensity >= 0.6) {
+    if (congestionEntity) viewer.entities.remove(congestionEntity);
+    congestionEntity = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(GATE4.lon, GATE4.lat, 0),
+      ellipse: {
+        semiMajorAxis:  new Cesium.CallbackProperty(() => 40 + 4 * Math.sin(Date.now() / 400), false),
+        semiMinorAxis:  new Cesium.CallbackProperty(() => 40 + 4 * Math.sin(Date.now() / 400), false),
+        material:       Cesium.Color.RED.withAlpha(0.35),
+        height:         0,
+        extrudedHeight: 30
+      }
+    });
+  }
+}
+
+function handleRouteOpened(ev) {
+  const positions = Cesium.Cartesian3.fromDegreesArray([
+    9.12400, 45.47810,
+    9.12450, 45.48550
+  ]);
+  // Outer halo 20px alpha 0.4 + inner solid 8px alpha 1.0
+  const halo = viewer.entities.add({
+    polyline: {
+      positions,
+      width:    20,
+      material: new Cesium.ColorMaterialProperty(
+        Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.4)
+      ),
+      clampToGround: true
+    }
+  });
+  const line = viewer.entities.add({
+    polyline: {
+      positions,
+      width:    8,
+      material: new Cesium.ColorMaterialProperty(
+        Cesium.Color.fromCssColorString('#00ff88')
+      ),
+      clampToGround: true
+    }
+  });
+  corridorEntities.push(halo, line);
+}
+
+function handleCrowdRedirect(ev) {
+  const tLon = 9.12450, tLat = 45.48550;
+  pedestrians.forEach(p => {
+    if (!p.redirected) {
+      p.redirected = true;
+      // Stagger departure for organic look
+      const delay = Math.random() * 2000;
+      setTimeout(() => {
+        p.dlng = (tLon - p.lng) * 0.000025 + (Math.random() - 0.5) * 0.0000012;
+        p.dlat = (tLat - p.lat) * 0.000025 + (Math.random() - 0.5) * 0.0000012;
+        p.pt.color    = Cesium.Color.fromCssColorString('#00ff88');
+        p.pt.pixelSize = 10;
+      }, delay);
     }
   });
 }
 
-function flowPedestriansNorth() {
-  pedestrians.forEach(p => {
-    p.dlng = (Math.random()-0.5)*0.0000008;
-    p.dlat = 0.000005 + Math.random()*0.000003;
-    if (p.red) {
-      p.pt.color     = Cesium.Color.fromCssColorString('#39ff14');
-      p.pt.pixelSize = 6;
-      p.red = false; p.green = true;
-    }
-  });
-}
-
-function interpRoute(pts, t) {
-  const n   = pts.length - 1;
-  const seg = Math.min(Math.floor(t * n), n - 1);
-  const st  = t * n - seg;
-  const a   = pts[seg], b = pts[seg + 1];
-  return { lng: a.lng + (b.lng - a.lng) * st, lat: a.lat + (b.lat - a.lat) * st };
-}
-
-function spawnCinemaBuses() {
+function handleBusDeploy(ev) {
+  const count = ev.count || 30;
+  if (!busColl) busColl = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
   busColl.removeAll();
-  busCinema = [];
-  const route = [
-    { lng: 9.1180, lat: 45.4900 },
-    { lng: 9.1240, lat: 45.4781 },
-    { lng: 9.2010, lat: 45.4862 }
-  ];
-  for (let i = 0; i < 30; i++) {
-    const pt = busColl.add({
-      position: Cesium.Cartesian3.fromDegrees(route[0].lng, route[0].lat, 5),
+  busState = [];
+
+  for (let i = 0; i < count; i++) {
+    const jLon = (Math.random() - 0.5) * 0.004;
+    const jLat = (Math.random() - 0.5) * 0.004;
+    const tLon = NORTH_GATE.lon + (Math.random() - 0.5) * 0.001;
+    const tLat = NORTH_GATE.lat + (Math.random() - 0.5) * 0.001;
+    const pt   = busColl.add({
+      position: Cesium.Cartesian3.fromDegrees(BUS_DEPOT.lon + jLon, BUS_DEPOT.lat + jLat, 5),
       color:    Cesium.Color.fromCssColorString('#00d4ff'),
-      pixelSize: 9
+      pixelSize: 14,
+      disableDepthTestDistance: Number.POSITIVE_INFINITY
     });
-    busCinema.push({ pt, offset: Math.random() * 0.25, route });
+    busState.push({
+      pt,
+      sLon: BUS_DEPOT.lon + jLon, sLat: BUS_DEPOT.lat + jLat,
+      tLon, tLat,
+      offset: Math.random() * 0.1
+    });
   }
-  if (busAnimIv) clearInterval(busAnimIv);
+
   const t0 = performance.now();
+  if (busAnimIv) clearInterval(busAnimIv);
   busAnimIv = setInterval(() => {
     const elapsed = (performance.now() - t0) / 25000;
-    busCinema.forEach(b => {
-      const pos = interpRoute(b.route, Math.min(elapsed + b.offset, 1.0));
-      b.pt.position = Cesium.Cartesian3.fromDegrees(pos.lng, pos.lat, 5);
+    busState.forEach(b => {
+      const prog = Math.min(elapsed + b.offset, 1.0);
+      b.pt.position = Cesium.Cartesian3.fromDegrees(
+        b.sLon + (b.tLon - b.sLon) * prog,
+        b.sLat + (b.tLat - b.sLat) * prog,
+        5
+      );
     });
   }, 16);
 }
 
-function spawnAmbulances() {
+function handleAmbulanceDeploy(ev) {
+  const starts = [
+    { lon: 9.1235, lat: 45.4742 },
+    { lon: 9.1246, lat: 45.4738 }
+  ];
   if (!ambColl) ambColl = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
   ambColl.removeAll();
   ambState = [];
-  [{ lng: 9.1235, lat: 45.4742 }, { lng: 9.1246, lat: 45.4738 }].forEach(s => {
+
+  const count = Math.min(ev.count || 2, starts.length);
+  for (let i = 0; i < count; i++) {
+    const s  = starts[i];
     const pt = ambColl.add({
-      position: Cesium.Cartesian3.fromDegrees(s.lng, s.lat, 5),
-      color:    Cesium.Color.fromCssColorString('#ff0033'),
-      pixelSize: 12
+      position: Cesium.Cartesian3.fromDegrees(s.lon, s.lat, 5),
+      color:    Cesium.Color.fromCssColorString('#ff2952'),
+      pixelSize: 16,
+      disableDepthTestDistance: Number.POSITIVE_INFINITY
     });
-    ambState.push({ pt, slng: s.lng, slat: s.lat, tlng: 9.1240, tlat: 45.4781, prog: 0 });
-  });
-  if (ambAnimIv) clearInterval(ambAnimIv);
+    ambState.push({ pt, sLon: s.lon, sLat: s.lat, tLon: NORTH_GATE.lon, tLat: NORTH_GATE.lat });
+  }
+
   const t0 = performance.now();
+  if (ambAnimIv) clearInterval(ambAnimIv);
   ambAnimIv = setInterval(() => {
-    const elapsed = (performance.now() - t0) / 9000;
-    const flash   = Math.sin(Date.now() / 160) > 0;
+    const prog  = Math.min((performance.now() - t0) / 9000, 1.0);
+    const flash = Math.sin(Date.now() / 170) > 0;
     ambState.forEach(a => {
-      a.prog = Math.min(elapsed, 1.0);
       a.pt.position = Cesium.Cartesian3.fromDegrees(
-        a.slng + (a.tlng - a.slng) * a.prog,
-        a.slat + (a.tlat - a.slat) * a.prog, 5
+        a.sLon + (a.tLon - a.sLon) * prog,
+        a.sLat + (a.tLat - a.sLat) * prog,
+        5
       );
-      a.pt.color     = flash ? Cesium.Color.fromCssColorString('#ff0033') : Cesium.Color.WHITE;
-      a.pt.pixelSize = flash ? 13 : 10;
+      a.pt.color    = flash ? Cesium.Color.WHITE : Cesium.Color.fromCssColorString('#ff2952');
+      a.pt.pixelSize = flash ? 11 : 16;
     });
   }, 16);
 }
 
-/* ── CINEMATIC TIMELINE — 62 s scripted movie ───────────────────────────── */
-function startDemo() {
-  demoTimers.forEach(clearTimeout);
-  demoTimers   = [];
-  demoOverride = true;
-  metroFailed  = false;
+function handleMetroFailure(ev) {
+  metroFailed = true;
+  beep(220, 0.5);
+}
 
-  pedColl.removeAll(); pedestrians = [];
-  busColl.removeAll();
+function handleMetricUpdate(ev) {
+  const clsMap = { orange: 'danger', green: 'safe', cyan: 'neutral' };
+  const cls    = clsMap[ev.color] || 'neutral';
+
+  switch (ev.metric) {
+    case 'risk':
+      setVal('mRisk', ev.value, cls);
+      break;
+    case 'evac': {
+      const num = ev.value.replace('min', '').trim();
+      setVal('mEvac', num, cls);
+      document.getElementById('mEvacUnit').textContent = 'min';
+      break;
+    }
+    case 'buses':
+      countUp('mBuses', parseInt(ev.value, 10), cls);
+      break;
+    case 'response':
+      setVal('mResp', ev.value, cls);
+      break;
+  }
+}
+
+function handleTranscriptStream(ev) {
+  const panel = document.getElementById('txPanel');
+  panel.classList.add('on');
+  const body  = document.getElementById('txBody');
+  body.textContent = '';
+  const words  = ev.text.split(/\s+/);
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i >= words.length) { clearInterval(iv); return; }
+    body.textContent += (i > 0 ? ' ' : '') + words[i++];
+    body.scrollTop    = body.scrollHeight;
+  }, 200);
+}
+
+function handleIncidentResolved(ev) {
+  setStatus('resolved');
+  // Crowd dots → green
+  pedestrians.forEach(p => {
+    p.pt.color    = Cesium.Color.fromCssColorString('#00ff88');
+    p.pt.pixelSize = 9;
+    p.dlng = (Math.random() - 0.5) * 0.000002;
+    p.dlat = 0.000003 + Math.random() * 0.000002;
+  });
+  // Congestion dome → green
+  if (congestionEntity && congestionEntity.ellipse) {
+    congestionEntity.ellipse.material = Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.35);
+  }
+}
+
+function handleAgentMessage(ev) {
+  const agent = AGENTS[ev.agent];
+  if (!agent) return;
+  const elapsed = demoStartTime ? (performance.now() - demoStartTime) / 1000 : 0;
+  beep(agent.freq);
+  appendAgentMsg(ev.agent, agent, ev.text, ev.decision, elapsed);
+  lightIcon(ev.agent);
+  showBubble(ev.agent, ev.text);
+}
+
+// ═══ TIMELINE ENGINE ═══
+function dispatchScenarioEvent(ev) {
+  switch (ev.type) {
+    case 'CAMERA_FLY':             handleCameraFly(ev);             break;
+    case 'CAMERA_ALERT':           handleCameraAlert(ev);           break;
+    case 'AGENT_MESSAGE':          handleAgentMessage(ev);          break;
+    case 'CROWD_DENSITY_INCREASE': handleCrowdDensityIncrease(ev);  break;
+    case 'ROUTE_OPENED':           handleRouteOpened(ev);           break;
+    case 'CROWD_REDIRECT':         handleCrowdRedirect(ev);         break;
+    case 'BUS_DEPLOY':             handleBusDeploy(ev);             break;
+    case 'AMBULANCE_DEPLOY':       handleAmbulanceDeploy(ev);       break;
+    case 'METRO_FAILURE':          handleMetroFailure(ev);          break;
+    case 'METRIC_UPDATE':          handleMetricUpdate(ev);          break;
+    case 'TRANSCRIPT_STREAM':      handleTranscriptStream(ev);      break;
+    case 'INCIDENT_RESOLVED':      handleIncidentResolved(ev);      break;
+  }
+}
+
+function tick() {
+  if (!scenario) return;
+  const elapsed = (performance.now() - demoStartTime) / 1000;
+  scenario.events.forEach((ev, i) => {
+    if (!firedSet.has(i) && ev.t <= elapsed) {
+      firedSet.add(i);
+      dispatchScenarioEvent(ev);
+    }
+  });
+  if (elapsed >= scenario.duration) {
+    clearInterval(tickIntervalId);
+    tickIntervalId = null;
+    onDemoEnd();
+  }
+}
+
+function startTick() {
+  demoStartTime = performance.now();
+  firedSet.clear();
+  if (tickIntervalId) clearInterval(tickIntervalId);
+  tickIntervalId = setInterval(tick, 100);
+}
+
+function onDemoEnd() {
+  const btn = document.getElementById('runBtn');
+  btn.textContent = '↺ RUN AGAIN';
+  btn.disabled    = false;
+}
+
+// ═══ DEMO CONTROL ═══
+function resetAll() {
+  if (tickIntervalId) { clearInterval(tickIntervalId); tickIntervalId = null; }
+  firedSet.clear();
+  metroFailed = false;
+
+  // Clear point primitive collections
+  if (pedColl) pedColl.removeAll();
+  if (busColl) busColl.removeAll();
   if (ambColl) ambColl.removeAll();
-  else ambColl = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
   if (busAnimIv) { clearInterval(busAnimIv); busAnimIv = null; }
   if (ambAnimIv) { clearInterval(ambAnimIv); ambAnimIv = null; }
-  evacLine.polyline.show = false;
-  evacGlow.polyline.show = false;
-  hideAllBubbles();
-  dimAllIcons();
+  pedestrians = []; busState = []; ambState = [];
+
+  // Remove camera alert billboards
+  alertBillColls.forEach(c => { try { viewer.scene.primitives.remove(c); } catch (_) {} });
+  alertBillColls = [];
+  alertIntervals.forEach(iv => clearInterval(iv));
+  alertIntervals = [];
+
+  // Remove corridor polylines
+  corridorEntities.forEach(e => { try { viewer.entities.remove(e); } catch (_) {} });
+  corridorEntities = [];
+
+  // Remove gate congestion dome
+  if (congestionEntity) { try { viewer.entities.remove(congestionEntity); } catch (_) {} congestionEntity = null; }
+
+  // Reset UI panels
+  document.getElementById('chatBody').innerHTML = '';
   document.getElementById('txPanel').classList.remove('on');
   document.getElementById('txBody').textContent = '';
-  setVal('mRisk',  '0.83', 'danger',  true);
-  setVal('mEvac',  '28',   'danger',  false);
-  setVal('mBuses', '0',    'neutral', false);
-  const respEl0 = document.getElementById('mResp');
-  if (respEl0) { respEl0.textContent = '0:00'; respEl0.className = 'mval neutral'; }
-  if (respTimer) { clearInterval(respTimer); respTimer = null; }
+  hideAllBubbles();
+  dimAllIcons();
+  setStatus('standby');
 
-  /* T+0s — Wide aerial over San Siro */
-  at(0, () => {
-    camFly(9.1280, 45.4780, 1200, 30, -45, 2);
-    setStatus('active');
-    startRespTimer();
-    spawnPedestrians80();
-    sysLog('SYS', 'Crisis scenario initiated');
-  });
-
-  /* T+3s — Fly close to Gate 4 */
-  at(3000, () => camFly(9.1240, 45.4775, 280, 0, -25, 2.5));
-
-  /* T+6s — PERCEPTION */
-  at(6000, () => {
-    beep(440);
-    activateIcon('perception');
-    reddenPedsNearGate4();
-    showBubble('perception', 'Crowd anomaly detected at Gate 4. Severity 0.83. 12,047 people. Pathways failing.');
-    sysLog('AGENT', 'Perception → COMPLETE');
-  });
-
-  /* T+11s — Hide Perception, fly to Metro Lotto */
-  at(11000, () => {
-    hideBubble('perception');
-    deactivateIcon('perception');
-    camFly(9.1340, 45.4830, 400, 270, -25, 2);
-  });
-
-  /* T+14s — FORECAST */
-  at(14000, () => {
-    beep(523);
-    activateIcon('forecast');
-    metroFailed = true;
-    showBubble('forecast', 'Crowd crush imminent. Risk 91%. Forecast: 10 minutes to critical state.');
-    sysLog('AGENT', 'Forecast → COMPLETE');
-  });
-
-  /* T+19s — Hide Forecast, fly to Via Verdi */
-  at(19000, () => {
-    hideBubble('forecast');
-    deactivateIcon('forecast');
-    camFly(9.1300, 45.4775, 350, 90, -30, 2);
-  });
-
-  /* T+22s — MOBILITY */
-  at(22000, () => {
-    beep(587);
-    activateIcon('mobility');
-    showBubble('mobility', 'Rerouting Via Verdi. Signal cycle changed. Traffic flow +30%.');
-    sysLog('AGENT', 'Mobility → COMPLETE');
-  });
-
-  /* T+27s — Hide Mobility, fly to Bus Depot */
-  at(27000, () => {
-    hideBubble('mobility');
-    deactivateIcon('mobility');
-    camFly(9.1180, 45.4900, 700, 130, -30, 2);
-  });
-
-  /* T+30s — TRANSIT */
-  at(30000, () => {
-    beep(659);
-    activateIcon('transit');
-    spawnCinemaBuses();
-    showBubble('transit', 'Deploying 50 buses. Route: San Siro → Central Station. ETA 4 minutes.');
-    countUp('mBuses', 50);
-    sysLog('AGENT', 'Transit → COMPLETE');
-  });
-
-  /* T+35s — Hide Transit, fly to Corridor */
-  at(35000, () => {
-    hideBubble('transit');
-    deactivateIcon('transit');
-    camFly(9.1244, 45.4810, 350, 0, -30, 2);
-  });
-
-  /* T+38s — SAFETY */
-  at(38000, () => {
-    beep(698);
-    activateIcon('safety');
-    openCorridor();
-    flowPedestriansNorth();
-    spawnAmbulances();
-    showBubble('safety', 'Corridor opened via Via Leonardo da Vinci. 20 security units deployed. 10 medical units.');
-    setVal('mRisk', '0.34', 'safe', true);
-    setVal('mEvac', '18',   'safe', false);
-    sysLog('AGENT', 'Safety → COMPLETE');
-  });
-
-  /* T+44s — Hide Safety, fly to Stadium center */
-  at(44000, () => {
-    hideBubble('safety');
-    deactivateIcon('safety');
-    camFly(9.1240, 45.4781, 320, 30, -28, 2);
-  });
-
-  /* T+47s — COMMUNICATIONS + live transcript */
-  at(47000, () => {
-    beep(783);
-    activateIcon('communications');
-    const panel = document.getElementById('txPanel');
-    panel.classList.add('on');
-    const body  = document.getElementById('txBody');
-    body.textContent = '';
-    const words = 'Operator to all units. Crowd surge at Gate 4. Evacuation corridor open via Via Leonardo da Vinci. Fifty buses dispatched to Central Station. All gates two six eight reopened. Maintain calm. Proceed with controlled discharge.'.split(' ');
-    let wi = 0;
-    const txIv = setInterval(() => {
-      if (wi >= words.length) { clearInterval(txIv); return; }
-      body.textContent += (wi > 0 ? ' ' : '') + words[wi++];
-      body.scrollTop = body.scrollHeight;
-    }, 280);
-    showBubble('communications', 'Bilingual alert broadcast. EN + IT. Gates 2, 6, 8 reopened.');
-    sysLog('AGENT', 'Communications → COMPLETE');
-  });
-
-  /* T+55s — Hide Communications, wide orbital */
-  at(55000, () => {
-    hideBubble('communications');
-    deactivateIcon('communications');
-    camFly(9.1280, 45.4790, 1500, 30, -50, 3);
-  });
-
-  /* T+58s — ORCHESTRATOR */
-  at(58000, () => {
-    beep(880);
-    activateIcon('orchestrator');
-    showBubble('orchestrator', 'Crisis contained. All agents coordinated. Evacuation: 18 minutes. Response time: 47 seconds.');
-    setStatus('resolved');
-    if (respTimer) { clearInterval(respTimer); respTimer = null; }
-    const respEl = document.getElementById('mResp');
-    if (respEl) { respEl.textContent = '0:47'; respEl.className = 'mval safe'; }
-    sysLog('ORCH', 'CRISIS CONTAINED');
-  });
-
-  /* T+62s — Wrap-up */
-  at(62000, () => {
-    deactivateIcon('orchestrator');
-    hideBubble('orchestrator');
-    demoRunning  = false;
-    demoOverride = false;
-    const btn = document.getElementById('runBtn');
-    btn.textContent = '↺ RUN AGAIN';
-    btn.disabled = false;
-  });
+  // Reset metrics to initial state
+  setVal('mRisk',  '—', 'neutral');
+  setVal('mEvac',  '—', 'neutral');
+  setVal('mResp',  '—', 'neutral');
+  setVal('mBuses', '0',      'neutral');
+  document.getElementById('mEvacUnit').textContent = '';
 }
+
+document.getElementById('runBtn').addEventListener('click', () => {
+  getACtx();
+  if (idleFlyTimer) { clearTimeout(idleFlyTimer); idleFlyTimer = null; }
+  resetAll();
+
+  const btn = document.getElementById('runBtn');
+  btn.textContent = '● RUNNING';
+  btn.disabled    = true;
+
+  if (!scenario) {
+    chatSys('Error: scenario.json not loaded');
+    btn.textContent = '► RUN DEMO';
+    btn.disabled    = false;
+    return;
+  }
+
+  setStatus('active');
+  initPedestrians();
+  chatSys('OlympusOS crisis scenario initiated — 90s simulation');
+  startTick();
+});
+
+// ═══ STARTUP ═══
+chatSys('OlympusOS v2.0 — Crisis Intelligence Platform');
+chatSys('San Siro Stadium, Milan — 75,000 capacity event');
+
+fetch('scenario.json')
+  .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+  .then(data => {
+    scenario = data;
+    chatSys('Scenario loaded: ' + scenario.events.length + ' events / ' + scenario.duration + 's');
+  })
+  .catch(e => chatSys('Scenario load error: ' + e.message));
 </script>
 </body>
 </html>

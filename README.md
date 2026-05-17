@@ -2,8 +2,6 @@
 
 > **A multi-agent AI orchestration platform for real-time crowd intelligence, crisis prediction, and autonomous coordination at mega-scale urban events.**
 
-<div align="center">
-
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![CesiumJS](https://img.shields.io/badge/CesiumJS-1.114-48B5C4?style=for-the-badge&logo=cesium&logoColor=white)
@@ -13,9 +11,7 @@
 
 **🔴 LIVE DEMO → [http://66.245.207.177/](http://66.245.207.177/)**
 
-*Built for Milano Cortina 2026 — Winter Olympics AI Hackathon*
-
-</div>
+Built for Milano Cortina 2026 — Winter Olympics AI Hackathon
 
 ---
 
@@ -58,7 +54,7 @@ The 2022 Itaewon crowd crush (158 deaths), the 2010 Love Parade disaster (21 dea
 OlympusOS deploys a coordinated team of seven specialized AI agents, each with a defined cognitive role:
 
 | Emoji | Agent | Role | Model |
-|-------|-------|------|-------|
+| ----- | ----- | ---- | ----- |
 | 👁️ | **Perception** | Real-time crowd density monitoring, camera anomaly detection | DeepSeek-V3.1 |
 | 🔮 | **Forecast** | Predictive crush trajectory modeling, risk scoring | DeepSeek-V3.1 |
 | 🚦 | **Mobility** | Evacuation corridor planning, route optimization | Qwen2.5-7B-Instruct |
@@ -74,7 +70,7 @@ Agents communicate through a **CrewAI pipeline** with causal pacing: detection �
 ## ✅ Feature Matrix
 
 | Feature | Status | Description |
-|---------|--------|-------------|
+| ------- | ------ | ----------- |
 | 7-Agent CrewAI Pipeline | ✅ Implemented | Real-time multi-agent orchestration at 10Hz |
 | FastAPI WebSocket Backend | ✅ Implemented | Async streaming server, persistent connections |
 | Google Photorealistic 3D Tiles | ✅ Implemented | Real San Siro Stadium — textured 3D buildings |
@@ -98,7 +94,7 @@ Agents communicate through a **CrewAI pipeline** with causal pacing: detection �
 
 ## 🏗️ Architecture
 
-```
+```text
                         OlympusOS — Cognitive Layer
                         ===========================
 
@@ -126,7 +122,7 @@ Agents communicate through a **CrewAI pipeline** with causal pacing: detection �
 
 ### 🔄 Crisis Response Flow
 
-```
+```text
   DETECT (0-12s)
   Perception detects density spike at Gate 4
        --> Camera 7 confirms visual bottleneck
@@ -154,8 +150,9 @@ Agents communicate through a **CrewAI pipeline** with causal pacing: detection �
 ## 🛠️ Technology Stack
 
 ### 🖥️ Frontend
+
 | Technology | Version | Purpose |
-|-----------|---------|---------|
+| ---------- | ------- | ------- |
 | CesiumJS | 1.114 | 3D geospatial rendering engine |
 | Google Maps Platform | — | Photorealistic 3D Tiles (Map Tiles API) |
 | HTML5 / CSS3 / JavaScript | ES2022 | Single-file SPA, zero build step |
@@ -163,8 +160,9 @@ Agents communicate through a **CrewAI pipeline** with causal pacing: detection �
 | WebSocket API | — | Real-time backend event streaming |
 
 ### ⚙️ Backend
+
 | Technology | Version | Purpose |
-|-----------|---------|---------|
+| ---------- | ------- | ------- |
 | Python | 3.11 | Runtime |
 | FastAPI | 0.104 | Async REST + WebSocket server |
 | CrewAI | Latest | Multi-agent orchestration framework |
@@ -173,15 +171,17 @@ Agents communicate through a **CrewAI pipeline** with causal pacing: detection �
 | SUMO | 1.18 | Traffic simulation engine |
 
 ### 🤖 AI Models (via Featherless.ai)
+
 | Model | Agents |
-|-------|--------|
+| ----- | ------ |
 | DeepSeek-V3.1 | 🧠 Orchestrator, 🔮 Forecast, 👁️ Perception |
 | Mistral-Nemo-Instruct-2407 | 🛡️ Safety, 📢 Communications |
 | Qwen2.5-7B-Instruct | 🚦 Mobility, 🚌 Transit |
 
 ### ☁️ Infrastructure
+
 | Component | Detail |
-|-----------|--------|
+| --------- | ------ |
 | Cloud Provider | Vultr — Ubuntu 24.04 VPS |
 | Reverse Proxy | nginx |
 | Process Manager | systemd |
@@ -273,27 +273,31 @@ Navigate to `http://your-server-ip/` and click **▶ RUN DEMO**.
 
 ## 🗺️ Roadmap
 
-### 📍 Phase 1 — Live Sensor Integration *(0–6 months)*
+### 📍 Phase 1 — Live Sensor Integration (0–6 months)
+
 - 🎥 CCTV ingestion with real-time YOLO crowd density detection
 - 📡 IoT pressure sensor grid at stadium gates
 - 🚗 Live SUMO traffic simulation with real road state feeds
 - 🗺️ Dynamic map overlays from real sensor data
 
-### 📍 Phase 2 — AI Capability Expansion *(6–12 months)*
+### 📍 Phase 2 — AI Capability Expansion (6–12 months)
+
 - 🧬 Reinforcement learning policy optimization for crowd routing
 - 🗂️ Vector database agent memory — persistent reasoning across events
 - 🌍 Multilingual command interface (Italian, English, French, German)
 - 🚁 Drone coordination API for aerial crowd monitoring
 - 📈 Predictive modeling with 10-minute lookahead horizons
 
-### 📍 Phase 3 — Municipal Deployment *(12–24 months)*
+### 📍 Phase 3 — Municipal Deployment (12–24 months)
+
 - 🚔 Integration with Italian police dispatch systems
 - 🚑 Real-time ambulance and fire brigade coordination API
 - 🚦 Smart traffic signal control interface
 - 🛰️ Satellite crowd density feeds for stadium perimeter
 - 🏛️ Government compliance and audit logging layer
 
-### 📍 Phase 4 — National Scale *(2–5 years)*
+### 📍 Phase 4 — National Scale (2–5 years)
+
 - 🌐 Multi-city deployment framework
 - 🤖 Autonomous emergency coordination — zero human approval latency
 - 🏙️ Digital twin integration for full urban system modeling
@@ -307,7 +311,7 @@ Navigate to `http://your-server-ip/` and click **▶ RUN DEMO**.
 This is a proof-of-concept built by a solo developer over 3 days:
 
 | Constraint | Detail |
-|-----------|--------|
+| ---------- | ------ |
 | 👤 Solo development | Single developer, 72-hour build window |
 | 💻 No GPU inference | All LLM calls routed through external API |
 | 📡 No live sensors | Crowd simulation is mathematical, not camera-derived |
@@ -322,7 +326,7 @@ The architecture demonstrates systems-level thinking for a platform that, at ful
 ## 🙏 Acknowledgements
 
 | Project | Role |
-|---------|------|
+| ------- | ---- |
 | [Milano Cortina 2026](https://www.milanocortina2026.olimpiadi.it/) | Inspiration and hackathon context |
 | [Cesium](https://cesium.com/) | Open-source 3D geospatial rendering engine |
 | [Google Maps Platform](https://mapsplatform.google.com/) | Photorealistic 3D Tiles |
@@ -349,12 +353,8 @@ This is what it looks like when cities stop reacting and start thinking.
 
 ---
 
-<div align="center">
-
-*Built for Milano Cortina 2026 — Winter Olympics AI Hackathon*
+Built for Milano Cortina 2026 — Winter Olympics AI Hackathon
 
 **🔴 [http://66.245.207.177/](http://66.245.207.177/) — Live Demo**
 
 [![GitHub](https://img.shields.io/badge/GitHub-NevineAKF%2FOlympusOS-181717?style=for-the-badge&logo=github)](https://github.com/NevineAKF/OlympusOS)
-
-</div>
